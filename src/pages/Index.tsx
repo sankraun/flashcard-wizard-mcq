@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +25,7 @@ import {
   Trophy,
   TrendingUp
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface MCQ {
   id: string;
@@ -47,6 +47,13 @@ interface PracticeSession {
   score?: number;
 }
 
+// Change practiceMCQs to be an array of named sets
+interface MCQSet {
+  name: string;
+  mcqs: MCQ[];
+  created: number;
+}
+
 const Index = () => {
   const [inputText, setInputText] = useState('');
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
@@ -62,6 +69,33 @@ const Index = () => {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [practiceSession, setPracticeSession] = useState<PracticeSession | null>(null);
   const [apiKey, setApiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
+  // Add state for user answers and study sessions
+  const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
+  const [studySessions, setStudySessions] = useState<PracticeSession[]>(() => {
+    const saved = localStorage.getItem('neutronai_study_sessions');
+    return saved ? JSON.parse(saved) : [];
+  });
+  // Store generated MCQs in localStorage and load them for practice
+  const [practiceMCQSets, setPracticeMCQSets] = useState<MCQSet[]>([]);
+
+  // Modal states
+  const [practiceModalOpen, setPracticeModalOpen] = useState(false);
+  const [modalMCQs, setModalMCQs] = useState<MCQ[]>([]);
+  const [modalCurrentIndex, setModalCurrentIndex] = useState(0);
+  const [modalUserAnswers, setModalUserAnswers] = useState<(number|null)[]>([]);
+  const [modalShowAnswer, setModalShowAnswer] = useState(false);
+  const [modalSelectedAnswer, setModalSelectedAnswer] = useState<number|null>(null);
+  // Add state for modal submission and wrong answers
+  const [modalSubmitted, setModalSubmitted] = useState(false);
+  const [modalWrongIndexes, setModalWrongIndexes] = useState<number[]>([]);
+
+  // Load practice MCQ sets from localStorage on mount
+  useEffect(() => {
+    const savedPracticeSets = localStorage.getItem('neutronai_practice_mcqs_list');
+    if (savedPracticeSets) {
+      setPracticeMCQSets(JSON.parse(savedPracticeSets));
+    }
+  }, []);
 
   const generateMCQs = async () => {
     if (!inputText.trim()) {
@@ -77,7 +111,7 @@ const Index = () => {
     
     try {
       const prompt = `
-        Generate 5 high-quality multiple choice questions from the following text. 
+        Generate as many high-quality multiple choice questions as reasonably possible from the following text, based on its length and content. 
         Mode: ${mode === 'basic' ? 'Direct MCQs based on content' : 'Clinical/Applied case-based MCQs'}
         Question Type: ${questionType}
         Difficulty: ${difficulty === 'auto' ? 'Mixed difficulty levels' : difficulty}
@@ -162,6 +196,33 @@ const Index = () => {
       setCurrentMCQIndex(0);
       setSelectedAnswer(null);
       setShowAnswer(false);
+      // Save generated MCQs to localStorage
+      localStorage.setItem('neutronai_mcqs', JSON.stringify(formattedMCQs));
+      // Save generated MCQs to localStorage for practice
+      // Removed savePracticeMCQs call
+
+      // After MCQs are generated, get a short name for the set
+      const namePrompt = `Generate a very short, 1 or 2 word descriptive title for a set of MCQs based on the following text. Only return the title, no punctuation or extra words:\n${inputText}`;
+      const nameResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: namePrompt }] }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 8 }
+        })
+      });
+      let setName = 'Untitled';
+      if (nameResponse.ok) {
+        const nameData = await nameResponse.json();
+        setName = nameData.candidates?.[0]?.content?.parts?.[0]?.text?.replace(/[^\w\s]/g, '').trim().split(/\s+/).slice(0,2).join(' ') || setName;
+      }
+      // Save MCQs to practice list with name
+      const newPracticeList = [
+        { name: setName, mcqs: formattedMCQs, created: Date.now() },
+        ...practiceMCQSets
+      ];
+      setPracticeMCQSets(newPracticeList);
+      localStorage.setItem('neutronai_practice_mcqs_list', JSON.stringify(newPracticeList));
       
       toast({
         title: "Success!",
@@ -275,8 +336,42 @@ const Index = () => {
     }
   };
 
+  // Add a submit handler for the last question
+  const handleSubmitMCQs = () => {
+    // Calculate score
+    const correct = mcqs.filter((mcq, idx) => userAnswers[idx] === mcq.correctAnswer).length;
+    const accuracy = mcqs.length > 0 ? Math.round((correct / mcqs.length) * 100) : 0;
+    const session: PracticeSession = {
+      id: `session_${Date.now()}`,
+      mcqs,
+      userAnswers,
+      startTime: new Date(),
+      endTime: new Date(),
+      score: accuracy
+    };
+    // Save session to localStorage
+    const updatedSessions = [session, ...studySessions];
+    setStudySessions(updatedSessions);
+    localStorage.setItem('neutronai_study_sessions', JSON.stringify(updatedSessions));
+    // Clear dashboard MCQs
+    setMcqs([]);
+    setUserAnswers([]);
+    setCurrentMCQIndex(0);
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    toast({
+      title: 'Submitted!',
+      description: `Your answers have been submitted. Accuracy: ${accuracy}%`,
+    });
+  };
+
   const handleAnswerSelect = (answerIndex: number) => {
     setSelectedAnswer(answerIndex);
+    setUserAnswers(prev => {
+      const updated = [...prev];
+      updated[currentMCQIndex] = answerIndex;
+      return updated;
+    });
   };
 
   const checkAnswer = () => {
@@ -341,7 +436,7 @@ const Index = () => {
           <div className="flex items-center justify-center gap-3">
             <Brain className="w-8 h-8 text-blue-600" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Flashcard Wizard MCQ
+              Neutron AI
             </h1>
           </div>
           <p className="text-lg text-muted-foreground">
@@ -475,8 +570,8 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* MCQ Display */}
-            {mcqs.length > 0 && (
+            {/* Only show MCQ dashboard if there are MCQs and no study session has just been submitted */}
+            {mcqs.length > 0 && !practiceMode && (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -573,19 +668,23 @@ const Index = () => {
                           Previous
                         </Button>
                         
-                        {!showAnswer ? (
-                          <Button 
-                            onClick={checkAnswer} 
-                            disabled={selectedAnswer === null}
-                          >
-                            Check Answer
+                        {showAnswer && currentMCQIndex === mcqs.length - 1 ? (
+                          <Button onClick={handleSubmitMCQs} color="primary">
+                            Submit
                           </Button>
-                        ) : (
+                        ) : showAnswer ? (
                           <Button 
                             onClick={nextQuestion} 
                             disabled={currentMCQIndex === mcqs.length - 1}
                           >
                             Next Question
+                          </Button>
+                        ) : (
+                          <Button 
+                            onClick={checkAnswer} 
+                            disabled={selectedAnswer === null}
+                          >
+                            Check Answer
                           </Button>
                         )}
                       </div>
@@ -605,9 +704,9 @@ const Index = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {mcqs.length === 0 ? (
+                {practiceMCQSets.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">No MCQs available for practice</p>
+                    <p className="text-muted-foreground mb-4">No MCQ sets available for practice</p>
                     <Button onClick={() => {
                       const generatorTab = document.querySelector('[value="generator"]') as HTMLElement;
                       generatorTab?.click();
@@ -616,16 +715,30 @@ const Index = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold mb-2">Ready to Practice!</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Test your knowledge with {mcqs.length} questions
-                    </p>
-                    <Button onClick={startPracticeMode} size="lg">
-                      <Timer className="w-4 h-4 mr-2" />
-                      Start Practice Session
-                    </Button>
+                  <div className="space-y-4">
+                    {practiceMCQSets.map((set, idx) => (
+                      <div key={set.created} className="flex justify-between items-center border rounded p-3">
+                        <div>
+                          <div className="font-semibold">{set.name}</div>
+                          <div className="text-xs text-muted-foreground">{set.mcqs.length} questions</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => {
+                            setModalMCQs(set.mcqs);
+                            setModalCurrentIndex(0);
+                            setModalUserAnswers(new Array(set.mcqs.length).fill(null));
+                            setModalShowAnswer(false);
+                            setModalSelectedAnswer(null);
+                            setPracticeModalOpen(true);
+                          }}>Practice</Button>
+                          <Button size="sm" variant="destructive" onClick={() => {
+                            const updated = practiceMCQSets.filter((_, i) => i !== idx);
+                            setPracticeMCQSets(updated);
+                            localStorage.setItem('neutronai_practice_mcqs_list', JSON.stringify(updated));
+                          }}>Delete</Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -649,15 +762,15 @@ const Index = () => {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
                     <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">0</div>
-                      <div className="text-sm text-blue-800">Questions Practiced</div>
+                      <div className="text-2xl font-bold text-blue-600">{studySessions.length > 0 ? studySessions[0].mcqs.length : 0}</div>
+                      <div className="text-sm text-blue-800">Questions Last Session</div>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">0%</div>
+                      <div className="text-2xl font-bold text-green-600">{studySessions.length > 0 ? `${studySessions[0].score}%` : '0%'}</div>
                       <div className="text-sm text-green-800">Accuracy Rate</div>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">0</div>
+                      <div className="text-2xl font-bold text-purple-600">{studySessions.length}</div>
                       <div className="text-sm text-purple-800">Study Sessions</div>
                     </div>
                   </div>
@@ -666,6 +779,84 @@ const Index = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Practice Modal */}
+        <Dialog open={practiceModalOpen} onOpenChange={setPracticeModalOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Practice: {practiceMCQSets.find(s => s.mcqs === modalMCQs)?.name || 'MCQ Set'}</DialogTitle>
+            </DialogHeader>
+            {modalMCQs.length > 0 && (
+              <div className="space-y-4">
+                <div className="font-semibold mb-2">Question {modalCurrentIndex + 1} of {modalMCQs.length}</div>
+                <div className="text-lg font-medium leading-relaxed mb-2">{modalMCQs[modalCurrentIndex].question}</div>
+                <div className="space-y-2">
+                  {modalMCQs[modalCurrentIndex].options.map((option, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => !modalShowAnswer && (setModalSelectedAnswer(idx), setModalUserAnswers(prev => { const arr = [...prev]; arr[modalCurrentIndex] = idx; return arr; }))}
+                      className={`p-3 rounded border cursor-pointer transition-all ${modalSelectedAnswer === idx ? (modalShowAnswer ? (idx === modalMCQs[modalCurrentIndex].correctAnswer ? 'bg-green-100 border-green-500' : 'bg-red-100 border-red-500') : 'bg-blue-100 border-blue-500') : (modalShowAnswer && idx === modalMCQs[modalCurrentIndex].correctAnswer ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100')}`}
+                    >
+                      <span className="font-semibold mr-2">{String.fromCharCode(65 + idx)}.</span> {option}
+                    </div>
+                  ))}
+                </div>
+                {modalShowAnswer && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                    <div className="font-semibold mb-1">Explanation</div>
+                    <div>{modalMCQs[modalCurrentIndex].explanation}</div>
+                  </div>
+                )}
+                {!modalSubmitted ? (
+                  <div className="flex justify-between items-center mt-4">
+                    <Button onClick={() => setModalCurrentIndex(i => Math.max(0, i - 1))} disabled={modalCurrentIndex === 0} variant="outline">Previous</Button>
+                    {!modalShowAnswer ? (
+                      <Button onClick={() => setModalShowAnswer(true)} disabled={modalSelectedAnswer === null}>Check Answer</Button>
+                    ) : modalCurrentIndex < modalMCQs.length - 1 ? (
+                      <Button onClick={() => { setModalCurrentIndex(i => i + 1); setModalShowAnswer(false); setModalSelectedAnswer(modalUserAnswers[modalCurrentIndex + 1] ?? null); }}>Next</Button>
+                    ) : (
+                      <Button color="primary" onClick={() => {
+                        // On submit, calculate accuracy and wrong answers
+                        const wrong: number[] = [];
+                        let correct = 0;
+                        modalMCQs.forEach((mcq, idx) => {
+                          if (modalUserAnswers[idx] === mcq.correctAnswer) correct++;
+                          else wrong.push(idx);
+                        });
+                        setModalWrongIndexes(wrong);
+                        setModalSubmitted(true);
+                      }}>Submit</Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">Accuracy: {modalMCQs.length > 0 ? Math.round(((modalMCQs.length - modalWrongIndexes.length) / modalMCQs.length) * 100) : 0}%</div>
+                      <div className="text-lg mt-2">{modalWrongIndexes.length === 0 ? 'All answers correct!' : `${modalWrongIndexes.length} wrong answer(s)`}</div>
+                    </div>
+                    {modalWrongIndexes.length > 0 && (
+                      <div className="text-center">
+                        <Button color="primary" onClick={() => {
+                          // Practice only wrong answers
+                          setModalMCQs(modalWrongIndexes.map(i => modalMCQs[i]));
+                          setModalUserAnswers(new Array(modalWrongIndexes.length).fill(null));
+                          setModalCurrentIndex(0);
+                          setModalShowAnswer(false);
+                          setModalSelectedAnswer(null);
+                          setModalSubmitted(false);
+                          setModalWrongIndexes([]);
+                        }}>Practice Wrong Answers</Button>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <Button variant="outline" onClick={() => setPracticeModalOpen(false)}>Close</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
