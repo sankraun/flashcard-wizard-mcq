@@ -1,16 +1,17 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMCQStorage } from '@/hooks/useMCQStorage';
+import UserProfile from '@/components/UserProfile';
 import { 
   BookOpen, 
   Brain, 
@@ -22,10 +23,13 @@ import {
   Lightbulb,
   CheckCircle,
   XCircle,
-  Clock,
   Trophy,
-  TrendingUp
+  TrendingUp,
+  Save,
+  Database,
+  LogIn
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface MCQ {
   id: string;
@@ -38,16 +42,11 @@ interface MCQ {
   chapter?: string;
 }
 
-interface PracticeSession {
-  id: string;
-  mcqs: MCQ[];
-  userAnswers: (number | null)[];
-  startTime: Date;
-  endTime?: Date;
-  score?: number;
-}
-
 const Index = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { savedMCQs, saveMCQsToDatabase, loading: storageLoading } = useMCQStorage();
+  const navigate = useNavigate();
+  
   const [inputText, setInputText] = useState('');
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
   const [currentMCQIndex, setCurrentMCQIndex] = useState(0);
@@ -58,10 +57,31 @@ const Index = () => {
   const [questionType, setQuestionType] = useState<'single' | 'multiple' | 'assertion' | 'match'>('single');
   const [difficulty, setDifficulty] = useState<'auto' | 'easy' | 'medium' | 'hard'>('auto');
   const [chapter, setChapter] = useState('');
-  const [practiceMode, setPracticeMode] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [practiceSession, setPracticeSession] = useState<PracticeSession | null>(null);
-  const [apiKey, setApiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
+  const [apiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
+
+  // Show auth page if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Don't render anything while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth page if not logged in
+  if (!user) {
+    return null;
+  }
 
   const generateMCQs = async () => {
     if (!inputText.trim()) {
@@ -103,8 +123,6 @@ const Index = () => {
         ${mode === 'clinical' ? '- Focus on practical application and case scenarios' : ''}
       `;
 
-      console.log('Generating MCQs with prompt:', prompt);
-
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
@@ -134,12 +152,8 @@ const Index = () => {
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
-      
       const generatedText = data.candidates[0].content.parts[0].text;
-      console.log('Generated text:', generatedText);
       
-      // Extract JSON from the response
       const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
         throw new Error('No valid JSON found in response');
@@ -178,6 +192,32 @@ const Index = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSaveMCQs = async () => {
+    if (mcqs.length === 0) {
+      toast({
+        title: "No MCQs to save",
+        description: "Please generate some MCQs first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await saveMCQsToDatabase(mcqs, inputText);
+  };
+
+  const loadSavedMCQSet = (startIndex: number) => {
+    const mcqsToLoad = savedMCQs.slice(startIndex, startIndex + 5);
+    setMcqs(mcqsToLoad);
+    setCurrentMCQIndex(0);
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    
+    toast({
+      title: "MCQs Loaded",
+      description: `Loaded ${mcqsToLoad.length} saved MCQs`,
+    });
   };
 
   const regenerateCurrentMCQ = async () => {
@@ -299,31 +339,6 @@ const Index = () => {
     }
   };
 
-  const startPracticeMode = () => {
-    if (mcqs.length === 0) {
-      toast({
-        title: "No MCQs Available",
-        description: "Please generate some MCQs first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setPracticeMode(true);
-    setTimeRemaining(mcqs.length * 60); // 1 minute per question
-    setPracticeSession({
-      id: `session_${Date.now()}`,
-      mcqs,
-      userAnswers: new Array(mcqs.length).fill(null),
-      startTime: new Date()
-    });
-    setCurrentMCQIndex(0);
-    setSelectedAnswer(null);
-    setShowAnswer(false);
-  };
-
-  const currentMCQ = mcqs[currentMCQIndex];
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Easy': return 'bg-green-100 text-green-800';
@@ -332,6 +347,8 @@ const Index = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const currentMCQ = mcqs[currentMCQIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -349,11 +366,18 @@ const Index = () => {
           </p>
         </div>
 
+        {/* User Profile */}
+        <UserProfile />
+
         <Tabs defaultValue="generator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="generator" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               Generator
+            </TabsTrigger>
+            <TabsTrigger value="saved" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Saved MCQs
             </TabsTrigger>
             <TabsTrigger value="practice" className="flex items-center gap-2">
               <Target className="w-4 h-4" />
@@ -466,9 +490,13 @@ const Index = () => {
                     )}
                   </Button>
                   {mcqs.length > 0 && (
-                    <Button onClick={startPracticeMode} variant="outline">
-                      <Timer className="w-4 h-4 mr-2" />
-                      Practice Mode
+                    <Button 
+                      onClick={handleSaveMCQs} 
+                      disabled={storageLoading}
+                      variant="outline"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save MCQs
                     </Button>
                   )}
                 </div>
@@ -596,6 +624,66 @@ const Index = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="saved" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Your Saved MCQs ({savedMCQs.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {savedMCQs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No Saved MCQs</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Generate and save some MCQs to see them here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {Array.from({ length: Math.ceil(savedMCQs.length / 5) }, (_, i) => {
+                      const startIndex = i * 5;
+                      const endIndex = Math.min(startIndex + 5, savedMCQs.length);
+                      const setMCQs = savedMCQs.slice(startIndex, endIndex);
+                      
+                      return (
+                        <div key={i} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="font-semibold">MCQ Set {i + 1}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {setMCQs.length} questions • {setMCQs[0]?.chapter || 'General'}
+                              </p>
+                            </div>
+                            <Button 
+                              onClick={() => loadSavedMCQSet(startIndex)}
+                              size="sm"
+                            >
+                              Load Set
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            {setMCQs.map((mcq, index) => (
+                              <div key={mcq.id} className="text-sm">
+                                <span className="font-medium">Q{startIndex + index + 1}:</span>
+                                <span className="ml-2">{mcq.question.substring(0, 100)}...</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {mcq.difficulty}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="practice" className="space-y-6">
             <Card>
               <CardHeader>
@@ -622,7 +710,7 @@ const Index = () => {
                     <p className="text-muted-foreground mb-6">
                       Test your knowledge with {mcqs.length} questions
                     </p>
-                    <Button onClick={startPracticeMode} size="lg">
+                    <Button size="lg">
                       <Timer className="w-4 h-4 mr-2" />
                       Start Practice Session
                     </Button>
@@ -649,8 +737,8 @@ const Index = () => {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
                     <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">0</div>
-                      <div className="text-sm text-blue-800">Questions Practiced</div>
+                      <div className="text-2xl font-bold text-blue-600">{savedMCQs.length}</div>
+                      <div className="text-sm text-blue-800">Total MCQs Saved</div>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                       <div className="text-2xl font-bold text-green-600">0%</div>
@@ -672,4 +760,3 @@ const Index = () => {
 };
 
 export default Index;
-
