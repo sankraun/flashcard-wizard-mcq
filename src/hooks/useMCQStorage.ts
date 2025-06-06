@@ -78,7 +78,7 @@ export const useMCQStorage = () => {
       const formattedMCQs: MCQ[] = data.map(mcq => ({
         id: mcq.id,
         question: mcq.question,
-        options: mcq.options,
+        options: Array.isArray(mcq.options) ? mcq.options as string[] : [],
         correctAnswer: mcq.correct_answer,
         explanation: mcq.explanation,
         difficulty: mcq.difficulty as 'Easy' | 'Medium' | 'Hard',
