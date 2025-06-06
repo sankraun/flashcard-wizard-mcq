@@ -13,7 +13,7 @@ const Index = () => {
     console.log('Index page - Auth state:', { user, loading });
     if (!loading && !user) {
       console.log('User not authenticated, redirecting to auth page');
-      navigate("/auth");
+      navigate("/auth", { replace: true });
     }
   }, [user, loading, navigate]);
 

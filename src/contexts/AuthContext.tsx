@@ -37,37 +37,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('Setting up auth state listener');
     
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('Initial session check:', { session, error });
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
+      setLoading(false);
+    };
+
+    getInitialSession();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, session);
+      async (event, session) => {
+        console.log('Auth state change:', { event, session });
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
     console.log('Attempting sign up for:', email);
-    const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
     });
     
     console.log('Sign up result:', { data, error });
@@ -83,12 +86,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     console.log('Sign in result:', { data, error });
+    
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
     console.log('Signing out');
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setSession(null);
+      setUser(null);
+    }
   };
 
   const value = {

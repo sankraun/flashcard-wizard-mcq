@@ -20,9 +20,10 @@ const AuthPage = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('AuthPage - checking auth state:', { user, loading });
     if (!loading && user) {
       console.log('User is authenticated, redirecting to home');
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -88,7 +89,11 @@ const AuthPage = () => {
           title: "Success!",
           description: "Welcome back!",
         });
-        // Navigation will happen automatically via useEffect
+        // Clear form
+        setEmail('');
+        setPassword('');
+        // Navigate immediately after successful login
+        navigate('/', { replace: true });
       }
     } catch (err) {
       console.error('Unexpected error during sign in:', err);
@@ -112,6 +117,11 @@ const AuthPage = () => {
         </div>
       </div>
     );
+  }
+
+  // Don't render anything if user is already authenticated (redirect will happen via useEffect)
+  if (user) {
+    return null;
   }
 
   return (
