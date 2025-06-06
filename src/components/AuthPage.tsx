@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Brain, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, user, loading } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('User is authenticated, redirecting to home');
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,39 +37,82 @@ const AuthPage = () => {
       return;
     }
 
-    setLoading(true);
-    const { error } = await signUp(email, password);
-    
-    if (error) {
+    setAuthLoading(true);
+    try {
+      const { error } = await signUp(email, password);
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        toast({
+          title: "Sign Up Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Please check your email to confirm your account",
+        });
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err) {
+      console.error('Unexpected error during sign up:', err);
       toast({
-        title: "Sign Up Error",
-        description: error.message,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Success!",
-        description: "Please check your email to confirm your account",
-      });
+    } finally {
+      setAuthLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setAuthLoading(true);
     
-    const { error } = await signIn(email, password);
-    
-    if (error) {
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        toast({
+          title: "Sign In Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Welcome back!",
+        });
+        // Navigation will happen automatically via useEffect
+      }
+    } catch (err) {
+      console.error('Unexpected error during sign in:', err);
       toast({
-        title: "Sign In Error",
-        description: error.message,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
+    } finally {
+      setAuthLoading(false);
     }
-    setLoading(false);
   };
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -101,6 +154,7 @@ const AuthPage = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -116,11 +170,12 @@ const AuthPage = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
+                  <Button type="submit" className="w-full" disabled={authLoading}>
+                    {authLoading ? (
                       "Signing in..."
                     ) : (
                       <>
@@ -146,6 +201,7 @@ const AuthPage = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -162,6 +218,7 @@ const AuthPage = () => {
                         className="pl-10"
                         required
                         minLength={6}
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -178,11 +235,12 @@ const AuthPage = () => {
                         className="pl-10"
                         required
                         minLength={6}
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
+                  <Button type="submit" className="w-full" disabled={authLoading}>
+                    {authLoading ? (
                       "Creating account..."
                     ) : (
                       <>
