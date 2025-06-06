@@ -608,7 +608,10 @@ const Index = () => {
                 {mcqs.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">No MCQs available for practice</p>
-                    <Button onClick={() => document.querySelector('[value="generator"]')?.click()}>
+                    <Button onClick={() => {
+                      const generatorTab = document.querySelector('[value="generator"]') as HTMLElement;
+                      generatorTab?.click();
+                    }}>
                       Generate MCQs First
                     </Button>
                   </div>
@@ -669,3 +672,4 @@ const Index = () => {
 };
 
 export default Index;
+
