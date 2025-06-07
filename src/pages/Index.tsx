@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthPage from '@/components/AuthPage';
 import NotesGenerator from '@/components/NotesGenerator';
 import SavedNotes from '@/components/SavedNotes';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   BookOpen, 
   Brain, 
@@ -12,7 +14,12 @@ import {
   BarChart3,
   FileText,
   LogOut,
-  User
+  User,
+  Lightbulb,
+  RefreshCw,
+  Timer,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
