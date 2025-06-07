@@ -1,31 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthPage from '@/components/AuthPage';
+import NotesGenerator from '@/components/NotesGenerator';
+import SavedNotes from '@/components/SavedNotes';
 import { 
   BookOpen, 
   Brain, 
   Target, 
-  RefreshCw, 
-  Timer, 
   BarChart3,
   FileText,
-  Lightbulb,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Trophy,
-  TrendingUp
+  LogOut,
+  User
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 
 interface MCQ {
   id: string;
@@ -55,6 +51,8 @@ interface MCQSet {
 }
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
+
   const [inputText, setInputText] = useState('');
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
   const [currentMCQIndex, setCurrentMCQIndex] = useState(0);
@@ -428,35 +426,74 @@ const Index = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully"
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <Brain className="w-8 h-8 text-blue-600" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Neutron AI
-            </h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Brain className="w-8 h-8 text-blue-600" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Neutron AI
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{user.email}</span>
+              </div>
+              <Button onClick={handleSignOut} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
           <p className="text-lg text-muted-foreground">
-            Transform any text into interactive MCQs with AI-powered insights
+            Transform any text into interactive MCQs and structured notes with AI
           </p>
         </div>
 
         <Tabs defaultValue="generator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="generator" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
-              Generator
+              MCQ Generator
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Notes Generator
+            </TabsTrigger>
+            <TabsTrigger value="saved-notes" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Saved Notes
             </TabsTrigger>
             <TabsTrigger value="practice" className="flex items-center gap-2">
               <Target className="w-4 h-4" />
               Practice
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -695,11 +732,19 @@ const Index = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="notes" className="space-y-6">
+            <NotesGenerator />
+          </TabsContent>
+
+          <TabsContent value="saved-notes" className="space-y-6">
+            <SavedNotes />
+          </TabsContent>
+
           <TabsContent value="practice" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Timer className="w-5 h-5" />
+                  <Target className="w-5 h-5" />
                   Practice Mode
                 </CardTitle>
               </CardHeader>
@@ -741,40 +786,6 @@ const Index = () => {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Performance Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">Analytics Dashboard</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Track your progress and identify weak areas
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{studySessions.length > 0 ? studySessions[0].mcqs.length : 0}</div>
-                      <div className="text-sm text-blue-800">Questions Last Session</div>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{studySessions.length > 0 ? `${studySessions[0].score}%` : '0%'}</div>
-                      <div className="text-sm text-green-800">Accuracy Rate</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">{studySessions.length}</div>
-                      <div className="text-sm text-purple-800">Study Sessions</div>
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -863,4 +874,3 @@ const Index = () => {
 };
 
 export default Index;
-
