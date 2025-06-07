@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,19 @@ const NotesGenerator = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
   const [apiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
+
+  // Function to convert markdown-style formatting to HTML
+  const formatNotesForDisplay = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic text
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>')  // H3 headings
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')   // H2 headings
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')   // H1 headings
+      .replace(/^- (.*$)/gm, '<li class="ml-4">• $1</li>')                         // Bullet points
+      .replace(/\n\n/g, '</p><p class="mb-2">')                                    // Paragraphs
+      .replace(/\n/g, '<br/>');                                                     // Line breaks
+  };
 
   const generateNotes = async () => {
     if (!inputText.trim()) {
@@ -200,11 +212,17 @@ const NotesGenerator = () => {
     pdf.text(title, margin, yPosition);
     yPosition += lineHeight * 2;
 
-    // Add content
+    // Add content - clean up markdown syntax for PDF
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
     
-    const lines = pdf.splitTextToSize(generatedNotes, pageWidth - 2 * margin);
+    const cleanedNotes = generatedNotes
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
+      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers
+      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
+      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+    
+    const lines = pdf.splitTextToSize(cleanedNotes, pageWidth - 2 * margin);
     
     for (let i = 0; i < lines.length; i++) {
       if (yPosition > pageHeight - margin) {
@@ -234,7 +252,14 @@ const NotesGenerator = () => {
     }
 
     const title = noteTitle || 'Generated Notes';
-    const content = `${title}\n\n${generatedNotes}`;
+    // Clean up markdown for Google Docs
+    const cleanedContent = generatedNotes
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
+      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers
+      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
+      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+    
+    const content = `${title}\n\n${cleanedContent}`;
     const encodedContent = encodeURIComponent(content);
     
     // Create a Google Docs URL with the content
@@ -326,10 +351,13 @@ const NotesGenerator = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
-                {generatedNotes}
-              </pre>
+            <div className="bg-gray-50 rounded-lg p-6 max-h-96 overflow-y-auto">
+              <div 
+                className="prose prose-sm max-w-none leading-relaxed"
+                dangerouslySetInnerHTML={{ 
+                  __html: `<p class="mb-2">${formatNotesForDisplay(generatedNotes)}</p>` 
+                }}
+              />
             </div>
           </CardContent>
         </Card>

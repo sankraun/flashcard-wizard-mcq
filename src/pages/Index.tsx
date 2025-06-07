@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface MCQ {
   id: string;
@@ -101,6 +101,36 @@ const Index = () => {
       setPracticeMCQSets(JSON.parse(savedPracticeSets));
     }
   }, []);
+
+  const saveMCQsToSupabase = async (mcqsToSave: MCQ[]) => {
+    if (!user) return;
+
+    try {
+      const mcqsForDB = mcqsToSave.map(mcq => ({
+        user_id: user.id,
+        question: mcq.question,
+        options: mcq.options,
+        correct_answer: mcq.correctAnswer,
+        explanation: mcq.explanation,
+        difficulty: mcq.difficulty,
+        question_type: mcq.type,
+        chapter: mcq.chapter || null,
+        original_text: inputText
+      }));
+
+      const { error } = await supabase
+        .from('mcqs')
+        .insert(mcqsForDB);
+
+      if (error) {
+        console.error('Error saving MCQs to Supabase:', error);
+      } else {
+        console.log('MCQs saved to Supabase successfully');
+      }
+    } catch (error) {
+      console.error('Error saving MCQs to Supabase:', error);
+    }
+  };
 
   const generateMCQs = async () => {
     if (!inputText.trim()) {
@@ -201,10 +231,13 @@ const Index = () => {
       setCurrentMCQIndex(0);
       setSelectedAnswer(null);
       setShowAnswer(false);
+      setUserAnswers(new Array(formattedMCQs.length).fill(null));
+      
+      // Save MCQs to Supabase
+      await saveMCQsToSupabase(formattedMCQs);
+      
       // Save generated MCQs to localStorage
       localStorage.setItem('neutronai_mcqs', JSON.stringify(formattedMCQs));
-      // Save generated MCQs to localStorage for practice
-      // Removed savePracticeMCQs call
 
       // After MCQs are generated, get a short name for the set
       const namePrompt = `Generate a very short, 1 or 2 word descriptive title for a set of MCQs based on the following text. Only return the title, no punctuation or extra words:\n${inputText}`;
@@ -231,7 +264,7 @@ const Index = () => {
       
       toast({
         title: "Success!",
-        description: `Generated ${formattedMCQs.length} MCQs successfully`,
+        description: `Generated ${formattedMCQs.length} MCQs successfully and saved to your account`,
       });
 
     } catch (error) {

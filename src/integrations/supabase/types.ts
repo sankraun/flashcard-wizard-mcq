@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      mcqs: {
+        Row: {
+          chapter: string | null
+          correct_answer: number
+          created_at: string
+          difficulty: string
+          explanation: string
+          id: string
+          options: Json
+          original_text: string | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Insert: {
+          chapter?: string | null
+          correct_answer: number
+          created_at?: string
+          difficulty: string
+          explanation: string
+          id?: string
+          options: Json
+          original_text?: string | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Update: {
+          chapter?: string | null
+          correct_answer?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string
+          id?: string
+          options?: Json
+          original_text?: string | null
+          question?: string
+          question_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string
