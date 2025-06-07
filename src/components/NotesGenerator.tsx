@@ -32,6 +32,15 @@ const NotesGenerator = () => {
       .replace(/\n/g, '<br/>');                                                     // Line breaks
   };
 
+  // Function to clean markdown for plain text export
+  const cleanMarkdownForExport = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers but keep text
+      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers but keep text
+      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
+      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+  };
+
   const generateNotes = async () => {
     if (!inputText.trim()) {
       toast({
@@ -205,23 +214,16 @@ const NotesGenerator = () => {
     const lineHeight = 7;
     let yPosition = margin;
 
-    // Add title
+    // Add title with bold formatting
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     const title = noteTitle || 'Generated Notes';
     pdf.text(title, margin, yPosition);
     yPosition += lineHeight * 2;
 
-    // Add content - clean up markdown syntax for PDF
+    // Process content with basic formatting
     pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    
-    const cleanedNotes = generatedNotes
-      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
-      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers
-      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
-      .replace(/^-\s+/gm, '• ');        // Convert bullet points
-    
+    const cleanedNotes = cleanMarkdownForExport(generatedNotes);
     const lines = pdf.splitTextToSize(cleanedNotes, pageWidth - 2 * margin);
     
     for (let i = 0; i < lines.length; i++) {
@@ -229,6 +231,16 @@ const NotesGenerator = () => {
         pdf.addPage();
         yPosition = margin;
       }
+      
+      // Check if line looks like a heading (was originally marked with #)
+      const originalLines = generatedNotes.split('\n');
+      const currentOriginalLine = originalLines[i];
+      if (currentOriginalLine && currentOriginalLine.match(/^#{1,3}\s+/)) {
+        pdf.setFont('helvetica', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'normal');
+      }
+      
       pdf.text(lines[i], margin, yPosition);
       yPosition += lineHeight;
     }
@@ -252,20 +264,32 @@ const NotesGenerator = () => {
     }
 
     const title = noteTitle || 'Generated Notes';
-    // Clean up markdown for Google Docs
-    const cleanedContent = generatedNotes
-      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
-      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers
-      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
-      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+    const cleanedContent = cleanMarkdownForExport(generatedNotes);
+    const fullContent = `${title}\n\n${cleanedContent}`;
     
-    const content = `${title}\n\n${cleanedContent}`;
-    const encodedContent = encodeURIComponent(content);
+    // Create a temporary form to submit the data to Google Docs
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://docs.google.com/document/create';
+    form.target = '_blank';
     
-    // Create a Google Docs URL with the content
-    const googleDocsUrl = `https://docs.google.com/document/create?title=${encodeURIComponent(title)}&body=${encodedContent}`;
+    // Add the content as a hidden input
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'text';
+    input.value = fullContent;
+    form.appendChild(input);
     
-    window.open(googleDocsUrl, '_blank');
+    // Add title input
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'title';
+    titleInput.value = title;
+    form.appendChild(titleInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
     
     toast({
       title: "Opening Google Docs",

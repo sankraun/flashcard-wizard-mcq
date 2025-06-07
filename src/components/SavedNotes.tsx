@@ -74,6 +74,28 @@ const SavedNotes = () => {
     }
   };
 
+  // Function to format notes for display with proper HTML
+  const formatNotesForDisplay = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic text
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>')  // H3 headings
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')   // H2 headings
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')   // H1 headings
+      .replace(/^- (.*$)/gm, '<li class="ml-4">• $1</li>')                         // Bullet points
+      .replace(/\n\n/g, '</p><p class="mb-2">')                                    // Paragraphs
+      .replace(/\n/g, '<br/>');                                                     // Line breaks
+  };
+
+  // Function to clean markdown for plain text (PDF and Google Docs)
+  const cleanMarkdownForExport = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers but keep text
+      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers but keep text
+      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
+      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+  };
+
   const exportToPDF = (note: Note) => {
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -82,7 +104,7 @@ const SavedNotes = () => {
     const lineHeight = 7;
     let yPosition = margin;
 
-    // Add title
+    // Add title with bold formatting
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.text(note.title, margin, yPosition);
@@ -95,15 +117,25 @@ const SavedNotes = () => {
     pdf.text(`Created: ${createdDate}`, margin, yPosition);
     yPosition += lineHeight * 2;
 
-    // Add content
+    // Process content with basic formatting
     pdf.setFontSize(12);
-    const lines = pdf.splitTextToSize(note.content, pageWidth - 2 * margin);
+    const cleanedContent = cleanMarkdownForExport(note.content);
+    const lines = pdf.splitTextToSize(cleanedContent, pageWidth - 2 * margin);
     
     for (let i = 0; i < lines.length; i++) {
       if (yPosition > pageHeight - margin) {
         pdf.addPage();
         yPosition = margin;
       }
+      
+      // Check if line looks like a heading (was originally marked with #)
+      const originalLine = note.content.split('\n')[i];
+      if (originalLine && originalLine.match(/^#{1,3}\s+/)) {
+        pdf.setFont('helvetica', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'normal');
+      }
+      
       pdf.text(lines[i], margin, yPosition);
       yPosition += lineHeight;
     }
@@ -117,12 +149,32 @@ const SavedNotes = () => {
   };
 
   const openInGoogleDocs = (note: Note) => {
-    const content = `${note.title}\n\n${note.content}`;
-    const encodedContent = encodeURIComponent(content);
+    const cleanedContent = cleanMarkdownForExport(note.content);
+    const fullContent = `${note.title}\n\n${cleanedContent}`;
     
-    const googleDocsUrl = `https://docs.google.com/document/create?title=${encodeURIComponent(note.title)}&body=${encodedContent}`;
+    // Create a temporary form to submit the data to Google Docs
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://docs.google.com/document/create';
+    form.target = '_blank';
     
-    window.open(googleDocsUrl, '_blank');
+    // Add the content as a hidden input
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'text';
+    input.value = fullContent;
+    form.appendChild(input);
+    
+    // Add title input
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'title';
+    titleInput.value = note.title;
+    form.appendChild(titleInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
     
     toast({
       title: "Opening Google Docs",
@@ -205,9 +257,12 @@ const SavedNotes = () => {
               </div>
             </div>
             <div className="bg-gray-50 rounded p-3 max-h-32 overflow-y-auto">
-              <p className="text-sm leading-relaxed line-clamp-4">
-                {note.content.substring(0, 200)}...
-              </p>
+              <div 
+                className="prose prose-sm max-w-none leading-relaxed text-sm"
+                dangerouslySetInnerHTML={{ 
+                  __html: formatNotesForDisplay(note.content.substring(0, 400) + (note.content.length > 400 ? '...' : ''))
+                }}
+              />
             </div>
           </div>
         ))}
