@@ -8,11 +8,13 @@ import NotesGenerator from '@/components/NotesGenerator';
 import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
-import { BookOpen, Brain, FileText, LogOut, User } from 'lucide-react';
+import { BookOpen, Brain, FileText, LogOut, User, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
+  const navigate = useNavigate();
 
   const handleMCQsGenerated = () => {
     setRefreshMCQs(prev => prev + 1);
@@ -52,6 +54,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => navigate('/mcq-practice')}
+                variant="outline"
+                size="sm"
+                className="hover-scale flex items-center gap-2"
+              >
+                <Target className="w-4 h-4" />
+                Practice MCQs
+              </Button>
               <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
                 <User className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">
@@ -81,7 +92,7 @@ const Index = () => {
               className="flex items-center gap-2 data-[state=active]:bg-blue-50 transition-all duration-200"
             >
               <Brain className="w-4 h-4" />
-              MCQ Practice
+              MCQ Generator
             </TabsTrigger>
             <TabsTrigger 
               value="notes-generator" 

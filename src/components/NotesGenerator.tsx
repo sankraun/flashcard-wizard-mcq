@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -243,16 +242,29 @@ const NotesGenerator = () => {
     setIsSaving(true);
     
     try {
-      const { error } = await supabase
+      console.log('Saving notes to Supabase...', {
+        user_id: user.id,
+        title: noteTitle,
+        content: generatedNotes,
+        original_text: inputText
+      });
+
+      const { data, error } = await supabase
         .from('notes')
         .insert({
           user_id: user.id,
           title: noteTitle,
           content: generatedNotes,
           original_text: inputText
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Notes saved successfully:', data);
 
       toast({
         title: "Success!",
