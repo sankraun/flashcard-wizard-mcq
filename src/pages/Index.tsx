@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,22 @@ const Index = () => {
 
   const handleMCQsGenerated = () => {
     setRefreshMCQs(prev => prev + 1);
+  };
+
+  // Helper to get nickname from user object
+  const getNickname = () => {
+    if (!user) return '';
+    // If user_metadata.nickname exists, use it (future-proof)
+    // @ts-ignore
+    if (user.user_metadata && user.user_metadata.nickname) {
+      // @ts-ignore
+      return user.user_metadata.nickname;
+    }
+    // Otherwise, use the part before '@' in the email
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
   };
 
   if (loading) {
@@ -66,7 +81,7 @@ const Index = () => {
               <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
                 <User className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">
-                  {user.email}
+                  {`welcome, ${getNickname()}`}
                 </span>
               </div>
               <Button 
