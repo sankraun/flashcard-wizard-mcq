@@ -7,8 +7,9 @@ import NotesGenerator from '@/components/NotesGenerator';
 import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
-import { BookOpen, Brain, FileText, LogOut, User, Target } from 'lucide-react';
+import { BookOpen, Brain, FileText, User, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import SettingsMenu from '@/components/SettingsMenu';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -84,15 +85,7 @@ const Index = () => {
                   {`welcome, ${getNickname()}`}
                 </span>
               </div>
-              <Button 
-                onClick={signOut} 
-                variant="outline" 
-                size="sm"
-                className="hover-scale"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              <SettingsMenu onSignOut={signOut} />
             </div>
           </div>
         </div>
