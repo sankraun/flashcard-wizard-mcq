@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookOpen, Trash2, Calendar, CheckCircle, XCircle, RefreshCw, Target, Award, BarChart } from 'lucide-react';
+import { BookOpen, Trash2, Calendar, CheckCircle, XCircle, RefreshCw, Target, Award, BarChart, Brain, TrendingUp } from 'lucide-react';
 
 interface MCQ {
   id: string;
@@ -30,6 +30,7 @@ const MCQViewer = () => {
   const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [sessionComplete, setSessionComplete] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -48,7 +49,6 @@ const MCQViewer = () => {
 
       if (error) throw error;
 
-      // Type assertion to handle the Json type from Supabase
       const typedData = (data || []).map(mcq => ({
         ...mcq,
         options: Array.isArray(mcq.options) ? mcq.options as string[] : []
@@ -56,6 +56,8 @@ const MCQViewer = () => {
 
       setMcqs(typedData);
       setUserAnswers(new Array(typedData.length || 0).fill(null));
+      setCorrectCount(0);
+      setSessionComplete(false);
     } catch (error) {
       console.error('Error loading MCQs:', error);
       toast({
@@ -79,11 +81,16 @@ const MCQViewer = () => {
 
       if (error) throw error;
 
-      setMcqs(mcqs.filter(mcq => mcq.id !== mcqId));
+      const newMcqs = mcqs.filter(mcq => mcq.id !== mcqId);
+      setMcqs(newMcqs);
       
-      if (currentIndex >= mcqs.length - 1 && currentIndex > 0) {
+      if (currentIndex >= newMcqs.length && currentIndex > 0) {
         setCurrentIndex(currentIndex - 1);
       }
+      
+      const newAnswers = [...userAnswers];
+      newAnswers.splice(currentIndex, 1);
+      setUserAnswers(newAnswers);
       
       toast({
         title: "Success",
@@ -122,6 +129,13 @@ const MCQViewer = () => {
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer(userAnswers[currentIndex + 1]);
       setShowAnswer(userAnswers[currentIndex + 1] !== null);
+    } else {
+      // Complete the session
+      setSessionComplete(true);
+      toast({
+        title: "Practice Session Complete! 🎉",
+        description: `You scored ${getScorePercentage()}% with ${correctCount} correct answers`,
+      });
     }
   };
 
@@ -131,6 +145,15 @@ const MCQViewer = () => {
       setSelectedAnswer(userAnswers[currentIndex - 1]);
       setShowAnswer(userAnswers[currentIndex - 1] !== null);
     }
+  };
+
+  const restartSession = () => {
+    setCurrentIndex(0);
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    setUserAnswers(new Array(mcqs.length).fill(null));
+    setCorrectCount(0);
+    setSessionComplete(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -151,6 +174,25 @@ const MCQViewer = () => {
     return answeredQuestions > 0 ? Math.round((correctCount / answeredQuestions) * 100) : 0;
   };
 
+  const getAccuracyByDifficulty = () => {
+    const difficulties = ['Easy', 'Medium', 'Hard'];
+    return difficulties.map(diff => {
+      const questionsOfDifficulty = mcqs.filter((mcq, index) => 
+        mcq.difficulty === diff && userAnswers[index] !== null
+      );
+      const correctAnswers = questionsOfDifficulty.filter((mcq, mcqIndex) => {
+        const originalIndex = mcqs.findIndex(m => m.id === mcq.id);
+        return userAnswers[originalIndex] === mcq.correct_answer;
+      }).length;
+      
+      return {
+        difficulty: diff,
+        accuracy: questionsOfDifficulty.length > 0 ? Math.round((correctAnswers / questionsOfDifficulty.length) * 100) : 0,
+        count: questionsOfDifficulty.length
+      };
+    });
+  };
+
   if (loading) {
     return (
       <Card className="animate-fade-in">
@@ -160,7 +202,7 @@ const MCQViewer = () => {
               <RefreshCw className="w-8 h-8 animate-spin" />
               <div className="absolute inset-0 w-8 h-8 border-2 border-blue-200 rounded-full animate-pulse"></div>
             </div>
-            <p className="text-lg font-medium">Loading your MCQs...</p>
+            <p className="text-lg font-medium">Loading your saved MCQs...</p>
           </div>
         </CardContent>
       </Card>
@@ -172,8 +214,8 @@ const MCQViewer = () => {
       <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-600" />
-            Practice MCQs
+            <Brain className="w-5 h-5 text-blue-600" />
+            Practice Saved MCQs
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-12">
@@ -185,14 +227,92 @@ const MCQViewer = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold">No MCQs yet</h3>
+              <h3 className="text-xl font-semibold">No Saved MCQs Found</h3>
               <p className="text-muted-foreground max-w-md">
-                Generate your first MCQs from study material to start practicing
+                Generate MCQs from study material first to start practicing
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Session Complete View
+  if (sessionComplete) {
+    const accuracyData = getAccuracyByDifficulty();
+    
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+              <Award className="w-8 h-8 text-yellow-600" />
+              Practice Session Complete!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium">Overall Score</span>
+                </div>
+                <div className="text-3xl font-bold text-blue-600">{getScorePercentage()}%</div>
+                <div className="text-sm text-muted-foreground">{correctCount}/{userAnswers.filter(a => a !== null).length} correct</div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <BarChart className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">Questions Completed</span>
+                </div>
+                <div className="text-3xl font-bold text-green-600">{mcqs.length}</div>
+                <div className="text-sm text-muted-foreground">Total questions</div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium">Performance</span>
+                </div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {getScorePercentage() >= 80 ? 'Excellent' : getScorePercentage() >= 60 ? 'Good' : 'Needs Work'}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <BarChart className="w-4 h-4" />
+                Accuracy by Difficulty
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                {accuracyData.map(({ difficulty, accuracy, count }) => (
+                  <div key={difficulty} className="text-center">
+                    <Badge className={`${getDifficultyColor(difficulty)} mb-2`}>
+                      {difficulty}
+                    </Badge>
+                    <div className="text-2xl font-bold">{accuracy}%</div>
+                    <div className="text-xs text-muted-foreground">{count} questions</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button onClick={restartSession} className="hover-scale">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Practice Again
+              </Button>
+              <Button onClick={loadMCQs} variant="outline" className="hover-scale">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Back to MCQs
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -221,7 +341,7 @@ const MCQViewer = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Score</p>
+                <p className="text-sm font-medium text-muted-foreground">Current Score</p>
                 <p className="text-2xl font-bold">{scorePercentage}%</p>
               </div>
               <Award className="w-8 h-8 text-green-600" />
@@ -366,11 +486,10 @@ const MCQViewer = () => {
                 </Button>
                 <Button 
                   onClick={nextQuestion} 
-                  disabled={currentIndex === mcqs.length - 1}
                   className="flex-1 hover-scale"
                   size="lg"
                 >
-                  {currentIndex === mcqs.length - 1 ? 'Finish Practice' : 'Next Question'}
+                  {currentIndex === mcqs.length - 1 ? 'Complete Practice' : 'Next Question'}
                 </Button>
               </div>
             )}
