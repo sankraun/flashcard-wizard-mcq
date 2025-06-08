@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Download, Trash2, Calendar } from 'lucide-react';
+import { FileText, Trash2, Calendar, Filter } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 interface Note {
@@ -19,6 +19,8 @@ interface Note {
 const SavedNotes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState("All");
   const { user } = useAuth();
 
   useEffect(() => {
@@ -132,84 +134,160 @@ const SavedNotes = () => {
 
     // Content
     const lines = note.content.split('\n');
+    let inBulletList = false;
+    let inTable = false;
+    let tableRows = [];
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
+      // Table row (markdown style: | col1 | col2 | ... |)
+      if (/^\s*\|(.+)\|\s*$/.test(line)) {
+        const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+        tableRows.push(cells);
+        inTable = true;
+        // If next line is not a table, render the table
+        if (i + 1 >= lines.length || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
+          // Draw table
+          const colCount = tableRows[0].length;
+          const colWidth = (pageWidth - margin * 2) / colCount;
+          let tableY = yPosition;
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          // Header row
+          tableRows.forEach((row, rowIdx) => {
+            let x = margin;
+            row.forEach((cell, colIdx) => {
+              pdf.rect(x, tableY - 8, colWidth, lineHeight + 4);
+              pdf.text(String(cell), x + 2, tableY);
+              x += colWidth;
+            });
+            tableY += lineHeight * 1.2;
+            if (tableY > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; tableY = margin; }
+          });
+          yPosition = tableY + lineHeight * 0.5;
+          tableRows = [];
+          inTable = false;
+        }
+        continue;
+      } else if (inTable) {
+        // End of table
+        tableRows = [];
+        inTable = false;
+        yPosition += lineHeight * 0.5;
+      }
       // H1
       if (/^# (.*)/.test(line)) {
+        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12);
+        pdf.setFontSize(14);
         pdf.setTextColor(10, 30, 80);
-        pdf.text(line.replace(/^# /, ''), margin, yPosition);
-        yPosition += lineHeight * 1.5;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        const h1Text = line.replace(/^# /, '');
+        const splitLines = pdf.splitTextToSize(h1Text, pageWidth - margin * 2);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin, yPosition);
+          yPosition += lineHeight * 2;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
+        yPosition += lineHeight * 0.5;
         continue;
       }
       // H2
       if (/^## (.*)/.test(line)) {
+        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(11);
+        pdf.setFontSize(12);
         pdf.setTextColor(34, 139, 34);
-        pdf.text(line.replace(/^## /, ''), margin + 10, yPosition);
-        yPosition += lineHeight * 1.3;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        const h2Text = line.replace(/^## /, '');
+        const splitLines = pdf.splitTextToSize(h2Text, pageWidth - margin * 2 - 10);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin + 10, yPosition);
+          yPosition += lineHeight * 1.5;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
+        yPosition += lineHeight * 0.5;
         continue;
       }
       // H3
       if (/^### (.*)/.test(line)) {
+        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(10);
+        pdf.setFontSize(11);
         pdf.setTextColor(219, 39, 119);
-        pdf.text(line.replace(/^### /, ''), margin + 20, yPosition);
-        yPosition += lineHeight * 1.1;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        const h3Text = line.replace(/^### /, '');
+        const splitLines = pdf.splitTextToSize(h3Text, pageWidth - margin * 2 - 20);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin + 20, yPosition);
+          yPosition += lineHeight * 1.2;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
+        yPosition += lineHeight * 0.3;
         continue;
       }
-      // Bullet points
-      if (/^- (.*)/.test(line)) {
+      // Bullet points (convert * and - to bullets)
+      if (/^(- |\* )(.+)/.test(line)) {
+        if (!inBulletList) { inBulletList = true; yPosition += lineHeight * 0.3; }
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
+        pdf.setFontSize(10);
         pdf.setTextColor(0, 0, 0);
         pdf.setFillColor(255, 249, 196);
         pdf.rect(margin + 20, yPosition - 9, pageWidth - margin * 2 - 20, lineHeight + 2, 'F');
-        let bulletText = line.replace(/^- /, '\u2022 ');
+        let bulletText = line.replace(/^(- |\* )/, '\u2022 ');
         bulletText = bulletText.replace(/\*\*(.*?)\*\*/g, '$1');
-        pdf.text(bulletText, margin + 25, yPosition);
-        yPosition += lineHeight * 1.05;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        bulletText = bulletText.replace(/\*(.*?)\*/g, '$1');
+        const splitLines = pdf.splitTextToSize(bulletText, pageWidth - margin * 2 - 25);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin + 25, yPosition);
+          yPosition += lineHeight * 1.15;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
         continue;
+      } else if (inBulletList) {
+        inBulletList = false;
+        yPosition += lineHeight * 0.5;
       }
       // Key points (bold)
       if (/\*\*(.*?)\*\*/.test(line)) {
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(9);
+        pdf.setFontSize(10);
         pdf.setTextColor(0, 0, 0);
         pdf.setFillColor(255, 249, 196);
         pdf.rect(margin, yPosition - 9, pageWidth - margin * 2, lineHeight + 2, 'F');
-        pdf.text(line.replace(/\*\*(.*?)\*\*/g, '$1'), margin, yPosition);
-        yPosition += lineHeight * 1.05;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        const boldText = line.replace(/\*\*(.*?)\*\*/g, '$1');
+        const splitLines = pdf.splitTextToSize(boldText, pageWidth - margin * 2);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin, yPosition);
+          yPosition += lineHeight * 1.15;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
+        yPosition += lineHeight * 0.2;
         continue;
       }
-      // Italic
+      // Italic (render as normal text, no asterisks)
       if (/\*(.*?)\*/.test(line)) {
-        pdf.setFont('helvetica', 'italic');
-        pdf.setFontSize(9);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(line.replace(/\*(.*?)\*/g, '$1'), margin, yPosition);
-        yPosition += lineHeight * 1.05;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        pdf.setTextColor(60, 60, 60);
+        const italicText = line.replace(/\*(.*?)\*/g, '$1');
+        const splitLines = pdf.splitTextToSize(italicText, pageWidth - margin * 2);
+        for (const splitLine of splitLines) {
+          pdf.text(splitLine, margin, yPosition);
+          yPosition += lineHeight * 1.1;
+          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        }
+        yPosition += lineHeight * 0.1;
         continue;
       }
       // Normal text
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setTextColor(60, 60, 60);
       const splitLines = pdf.splitTextToSize(line, pageWidth - margin * 2);
       for (const splitLine of splitLines) {
         pdf.text(splitLine, margin, yPosition);
-        yPosition += lineHeight;
+        yPosition += lineHeight * 1.2;
         if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
       }
+      yPosition += lineHeight * 0.2;
     }
     addPageNumber();
     pdf.save(`${note.title.replace(/[^\w\s]/gi, '')}.pdf`);
@@ -219,20 +297,88 @@ const SavedNotes = () => {
     });
   };
 
-  // Remove export to Google Docs, add export as .doc file
   const exportToDoc = (note: Note) => {
-    // Build HTML content for the doc file
-    const htmlContent = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><meta charset='utf-8'><title>Exported Notes</title></head>
-      <body style="font-family:Calibri,Arial,sans-serif;">
-        <h1 style="color:#0a1e50;font-size:1.5rem;">${note.title}</h1>
-        <div style="color:#888;font-size:0.8rem;">Created: ${new Date(note.created_at).toLocaleDateString()}</div>
-        <hr style="border:1px solid #ccc; margin:12px 0;"/>
-        <div>${formatNotesForDisplay(note.content)}</div>
-      </body>
-      </html>
+    // Use the same structure and formatting as PDF export
+    let htmlContent = `<html><head><meta charset='utf-8'><title>${note.title}</title></head><body style="font-family:Calibri,Arial,sans-serif;">
+      <h1 style="color:#0a1e50;font-size:1.5rem;margin-bottom:0.5em;">${note.title}</h1>
+      <div style="color:#888;font-size:0.8rem;margin-bottom:0.5em;">Created: ${new Date(note.created_at).toLocaleDateString()}</div>
+      <hr style="border:1px solid #ccc; margin:12px 0;"/>
     `;
+    const lines = note.content.split('\n');
+    let inList = false;
+    let inTable = false;
+    let tableRows = [];
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      // Table row (markdown style: | col1 | col2 | ... |)
+      if (/^\s*\|(.+)\|\s*$/.test(line)) {
+        const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+        tableRows.push(cells);
+        inTable = true;
+        if ((i + 1 >= lines.length) || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
+          // Render table
+          htmlContent += '<table style="border-collapse:collapse;width:100%;margin-bottom:1em;">';
+          tableRows.forEach((row, rowIdx) => {
+            htmlContent += '<tr>';
+            row.forEach(cell => {
+              htmlContent += `<td style="border:1px solid #bbb;padding:6px 8px;font-size:1rem;${rowIdx===0?'font-weight:bold;background:#f5f5f5;':''}">${cell}</td>`;
+            });
+            htmlContent += '</tr>';
+          });
+          htmlContent += '</table>';
+          tableRows = [];
+          inTable = false;
+        }
+        continue;
+      } else if (inTable) {
+        tableRows = [];
+        inTable = false;
+      }
+      // H1
+      if (/^# (.*)/.test(line)) {
+        if (inList) { htmlContent += '</ul>'; inList = false; }
+        htmlContent += `<h2 style="color:#0a1e50;font-size:1.2rem;margin-top:1.5em;margin-bottom:0.5em;">${line.replace(/^# /, '')}</h2>`;
+        continue;
+      }
+      // H2
+      if (/^## (.*)/.test(line)) {
+        if (inList) { htmlContent += '</ul>'; inList = false; }
+        htmlContent += `<h3 style="color:#228b22;font-size:1.1rem;margin-top:1.2em;margin-bottom:0.4em;">${line.replace(/^## /, '')}</h3>`;
+        continue;
+      }
+      // H3
+      if (/^### (.*)/.test(line)) {
+        if (inList) { htmlContent += '</ul>'; inList = false; }
+        htmlContent += `<h4 style="color:#db2777;font-size:1rem;margin-top:1em;margin-bottom:0.3em;">${line.replace(/^### /, '')}</h4>`;
+        continue;
+      }
+      // Bullet points (convert * and - to bullets)
+      if (/^(- |\* )(.+)/.test(line)) {
+        if (!inList) { htmlContent += '<ul style="margin-bottom:0.5em;">'; inList = true; }
+        let bulletText = line.replace(/^(- |\* )/, '');
+        bulletText = bulletText.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight:bold;background:#fff9c4;">$1</span>');
+        bulletText = bulletText.replace(/\*(.*?)\*/g, '<span style="font-style:italic;">$1</span>');
+        htmlContent += `<li style="margin-bottom:0.2em;font-size:1rem;">${bulletText}</li>`;
+        continue;
+      } else if (inList) {
+        htmlContent += '</ul>';
+        inList = false;
+      }
+      // Key points (bold)
+      if (/\*\*(.*?)\*\*/.test(line)) {
+        htmlContent += `<div style="font-weight:bold;background:#fff9c4;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:0.2em;">${line.replace(/\*\*(.*?)\*\*/g, '$1')}</div><br/>`;
+        continue;
+      }
+      // Italic (render as normal text, no asterisks)
+      if (/\*(.*?)\*/.test(line)) {
+        htmlContent += `<span style="font-style:italic;">${line.replace(/\*(.*?)\*/g, '$1')}</span><br/>`;
+        continue;
+      }
+      // Normal text
+      htmlContent += `<div style="font-size:1rem;margin-bottom:0.3em;">${line}</div>`;
+    }
+    if (inList) htmlContent += '</ul>';
+    htmlContent += '</body></html>';
     const blob = new Blob([htmlContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -249,6 +395,36 @@ const SavedNotes = () => {
       description: "Note exported as .doc file",
     });
   };
+
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = note.title.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (dateFilter === "All") return true;
+    const noteDate = new Date(note.created_at);
+    if (dateFilter === "Today") return isToday(noteDate);
+    if (dateFilter === "This Week") return isThisWeek(noteDate);
+    if (dateFilter === "This Month") return isThisMonth(noteDate);
+    return true;
+  });
+
+  function isToday(date: Date) {
+    const now = new Date();
+    return date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+  }
+  function isThisWeek(date: Date) {
+    const now = new Date();
+    const firstDayOfWeek = new Date(now);
+    firstDayOfWeek.setDate(now.getDate() - now.getDay());
+    const lastDayOfWeek = new Date(firstDayOfWeek);
+    lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+    return date >= firstDayOfWeek && date <= lastDayOfWeek;
+  }
+  function isThisMonth(date: Date) {
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  }
 
   if (loading) {
     return (
@@ -285,52 +461,58 @@ const SavedNotes = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="w-5 h-5" />
-          Saved Notes ({notes.length})
+          Saved Notes ({filteredNotes.length})
         </CardTitle>
+        <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+          <input
+            type="text"
+            placeholder="Search notes by title..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+          />
+          <div className="flex items-center gap-1 ml-auto">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <select
+              className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+            >
+              <option value="All">All Dates</option>
+              <option value="Today">Today</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+            </select>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {notes.map((note) => (
-          <div key={note.id} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{note.title}</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                  <Calendar className="w-4 h-4" />
-                  {new Date(note.created_at).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => exportToPDF(note)} 
-                  variant="outline" 
-                  size="sm"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button 
-                  onClick={() => exportToDoc(note)} 
-                  variant="outline" 
-                  size="sm"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button 
-                  onClick={() => deleteNote(note.id)} 
-                  variant="outline" 
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded p-3 max-h-32 overflow-y-auto">
-              <div 
-                className="prose prose-sm max-w-none leading-relaxed text-sm"
-                dangerouslySetInnerHTML={{ 
-                  __html: formatNotesForDisplay(note.content.substring(0, 400) + (note.content.length > 400 ? '...' : ''))
-                }}
-              />
+        {filteredNotes.map((note) => (
+          <div key={note.id} className="border rounded-lg p-4 flex items-center justify-between">
+            <div className="font-semibold text-lg truncate max-w-xs">{note.title}</div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => exportToPDF(note)} 
+                variant="outline" 
+                size="sm"
+              >
+                 PDF
+              </Button>
+              <Button 
+                onClick={() => exportToDoc(note)} 
+                variant="outline" 
+                size="sm"
+              >
+                 DOC
+              </Button>
+              <Button 
+                onClick={() => deleteNote(note.id)} 
+                variant="outline" 
+                size="sm"
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         ))}
