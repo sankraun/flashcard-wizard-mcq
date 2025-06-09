@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -156,6 +155,11 @@ const MCQViewer = () => {
     setSessionComplete(false);
   };
 
+  // Helper for dark mode backgrounds
+  const getBgClass = (light: string, dark: string) =>
+    `bg-${light} dark:bg-${dark}`;
+
+  // Update getDifficultyColor for dark mode
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Easy':
@@ -368,7 +372,7 @@ const MCQViewer = () => {
       </div>
 
       {/* Current MCQ */}
-      <Card className="animate-fade-in transition-all duration-300 hover:shadow-xl border-2 hover:border-blue-200">
+      <Card className="animate-fade-in transition-all duration-300 hover:shadow-xl border-2 hover:border-blue-200 relative pb-24">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -385,7 +389,7 @@ const MCQViewer = () => {
                   Question {currentIndex + 1}
                 </Badge>
               </div>
-              <CardTitle className="text-lg leading-relaxed">
+              <CardTitle className="text-lg leading-relaxed text-gray-900">
                 {currentMCQ.question}
               </CardTitle>
             </div>
@@ -419,32 +423,30 @@ const MCQViewer = () => {
                   className={`
                     justify-start text-left h-auto py-4 px-5 transition-all duration-300 hover-scale
                     ${showCorrectness ? (
-                      isCorrect ? 'bg-green-50 border-green-500 text-green-800 hover:bg-green-100' :
-                      isSelected ? 'bg-red-50 border-red-500 text-red-800 hover:bg-red-100' : ''
+                      isCorrect ? 'bg-green-50 border-green-500 text-green-800' :
+                      isSelected ? 'bg-red-50 border-red-500 text-red-800' : ''
                     ) : isSelected ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'}
                     ${showAnswer ? 'pointer-events-none' : 'cursor-pointer'}
                   `}
                   disabled={showAnswer}
                 >
-                  <div className="flex items-center gap-3 w-full">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                      ${isSelected && !showAnswer ? 'bg-blue-600 text-white' : 
-                        showCorrectness && isCorrect ? 'bg-green-600 text-white' :
-                        showCorrectness && isSelected && !isCorrect ? 'bg-red-600 text-white' :
-                        'bg-gray-200 text-gray-600'}
-                      transition-all duration-200
-                    `}>
-                      {String.fromCharCode(65 + index)}
-                    </div>
-                    <span className="flex-1 text-base">{option}</span>
-                    {showCorrectness && isCorrect && (
-                      <CheckCircle className="w-5 h-5 text-green-600 animate-scale-in" />
-                    )}
-                    {showCorrectness && isSelected && !isCorrect && (
-                      <XCircle className="w-5 h-5 text-red-600 animate-scale-in" />
-                    )}
+                  <div className={`
+                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                    ${isSelected && !showAnswer ? 'bg-blue-600 text-white' : 
+                      showCorrectness && isCorrect ? 'bg-green-600 text-white' :
+                      showCorrectness && isSelected && !isCorrect ? 'bg-red-600 text-white' :
+                      'bg-gray-200 text-gray-600'}
+                    transition-all duration-200
+                  `}>
+                    {String.fromCharCode(65 + index)}
                   </div>
+                  <span className="flex-1 text-base text-gray-900 break-words whitespace-pre-line max-w-full">{option}</span>
+                  {showCorrectness && isCorrect && (
+                    <CheckCircle className="w-5 h-5 text-green-600 animate-scale-in" />
+                  )}
+                  {showCorrectness && isSelected && !isCorrect && (
+                    <XCircle className="w-5 h-5 text-red-600 animate-scale-in" />
+                  )}
                 </Button>
               );
             })}
@@ -456,45 +458,49 @@ const MCQViewer = () => {
                 <BookOpen className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-blue-900 mb-2">Explanation:</h4>
-                  <p className="text-blue-800 leading-relaxed">{currentMCQ.explanation}</p>
+                  <p className="text-blue-800 leading-relaxed">
+                    {currentMCQ.explanation || <span className="text-gray-700">No explanation provided.</span>}
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+        </CardContent>
+        {/* Action bar absolutely positioned just below the MCQ card */}
+        <div className="absolute left-0 right-0 -bottom-6 z-40 flex justify-end bg-white/90 border-t border-blue-100 py-4 px-4 shadow-lg animate-fade-in rounded-b-xl">
+          <div className="w-full max-w-2xl flex gap-3 justify-end mx-auto">
             {!showAnswer ? (
               <Button 
                 onClick={checkAnswer} 
                 disabled={selectedAnswer === null}
-                className="flex-1 hover-scale bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                variant="default"
                 size="lg"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Check Answer
               </Button>
             ) : (
-              <div className="flex gap-3 w-full">
+              <>
                 <Button 
                   onClick={previousQuestion} 
                   disabled={currentIndex === 0}
-                  variant="outline"
-                  className="hover-scale"
+                  variant="default"
                   size="lg"
                 >
                   Previous
                 </Button>
                 <Button 
                   onClick={nextQuestion} 
-                  className="flex-1 hover-scale"
+                  variant="default"
                   size="lg"
                 >
                   {currentIndex === mcqs.length - 1 ? 'Complete Practice' : 'Next Question'}
                 </Button>
-              </div>
+              </>
             )}
           </div>
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

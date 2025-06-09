@@ -53,14 +53,18 @@ const NotesGenerator = () => {
     return chunks;
   };
 
-  const generateNotesForChunk = async (chunk: string, chunkIndex: number, totalChunks: number) => {
+  const generateNotesForChunk = async (chunk: string, chunkIndex: number, totalChunks: number, previousHeadings: string[] = []) => {
+    const prevHeadingsStr = previousHeadings.length > 0
+      ? `\n\nHeadings already covered in previous parts: ${previousHeadings.join(', ')}.`
+      : '';
     const prompt = `
-      Create well-structured, comprehensive notes from the following text chunk (${chunkIndex + 1}/${totalChunks}). Format them with:
-      - Clear headings and subheadings
-      - Key points in bullet format
-      - Important concepts highlighted
-      - Logical flow and organization
-      - Summary of main ideas
+      Create well-structured, comprehensive notes from the following text chunk (${chunkIndex + 1}/${totalChunks}).
+      - Do NOT repeat topics, headings, or content already covered in previous parts.\n${prevHeadingsStr}
+      - Do NOT include a summary for this part. Only include a summary at the end of the full notes (if at all).
+      - Use clear headings and subheadings
+      - Use bullet points for key points
+      - Highlight important concepts
+      - Ensure logical flow and organization
       
       Text: ${chunk}
       
@@ -121,6 +125,51 @@ const NotesGenerator = () => {
       .replace(/^-\s+/gm, '• ');        // Convert bullet points
   };
 
+  // Helper to extract headings from markdown notes
+  const extractHeadings = (text: string): string[] => {
+    return (text.match(/^#{1,3} .+/gm) || []).map(h => h.replace(/^#+ /, '').trim());
+  };
+
+  // Helper to remove duplicate headings/sections and extra summaries
+  const deduplicateNotes = (notesArr: string[]): string => {
+    const seenHeadings = new Set<string>();
+    let result: string[] = [];
+    let summaryLines: string[] = [];
+    for (let notes of notesArr) {
+      let lines = notes.split('\n');
+      let filtered: string[] = [];
+      let inSummary = false;
+      for (let line of lines) {
+        // Detect summary section
+        if (/^#+\s*Summary/i.test(line)) {
+          inSummary = true;
+          summaryLines.push(line);
+          continue;
+        }
+        if (inSummary) {
+          summaryLines.push(line);
+          continue;
+        }
+        // Deduplicate headings
+        if (/^#{1,3} .+/.test(line)) {
+          const heading = line.replace(/^#+ /, '').trim();
+          if (seenHeadings.has(heading)) continue;
+          seenHeadings.add(heading);
+        }
+        filtered.push(line);
+      }
+      result.push(filtered.join('\n'));
+    }
+    // Only keep one summary at the end (if any)
+    let summary = '';
+    if (summaryLines.length > 0) {
+      summary = '\n# Summary\n' + summaryLines
+        .filter(l => !/^#+\s*Summary/i.test(l))
+        .join('\n');
+    }
+    return result.join('\n\n') + summary;
+  };
+
   const generateNotes = async () => {
     if (!inputText.trim()) {
       toast({
@@ -136,6 +185,7 @@ const NotesGenerator = () => {
     try {
       const textChunks = splitTextIntoChunks(inputText.trim());
       let allGeneratedNotes: string[] = [];
+      let allHeadings: string[] = [];
 
       if (textChunks.length > 1) {
         setProcessingStep(`Processing ${textChunks.length} parts of your text...`);
@@ -146,15 +196,14 @@ const NotesGenerator = () => {
         });
       }
 
-      // Process each chunk
+      // Process each chunk, passing previous headings
       for (let i = 0; i < textChunks.length; i++) {
         setProcessingStep(`Generating notes for part ${i + 1} of ${textChunks.length}...`);
-        
         try {
-          const chunkNotes = await generateNotesForChunk(textChunks[i], i, textChunks.length);
+          const chunkNotes = await generateNotesForChunk(textChunks[i], i, textChunks.length, allHeadings);
           allGeneratedNotes.push(chunkNotes);
-          
-          // Small delay between requests to avoid rate limiting
+          // Update headings for next chunk
+          allHeadings = [...allHeadings, ...extractHeadings(chunkNotes)];
           if (i < textChunks.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
@@ -172,15 +221,14 @@ const NotesGenerator = () => {
         throw new Error('No notes could be generated from the provided text');
       }
 
-      // Combine all chunks into final notes
-      const combinedNotes = allGeneratedNotes.join('\n\n---\n\n');
+      // Deduplicate repeated headings/sections and summaries
+      const combinedNotes = deduplicateNotes(allGeneratedNotes);
       setGeneratedNotes(combinedNotes);
       
       // Auto-generate title if not provided
       if (!noteTitle.trim()) {
         setProcessingStep('Generating title...');
         const titlePrompt = `Generate a short, descriptive title (max 5 words) for notes about: ${inputText.substring(0, 200)}`;
-        
         try {
           const titleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -190,7 +238,6 @@ const NotesGenerator = () => {
               generationConfig: { temperature: 0.5, maxOutputTokens: 20 }
             })
           });
-          
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             const title = titleData.candidates?.[0]?.content?.parts?.[0]?.text?.replace(/[^\w\s]/g, '').trim() || 'Generated Notes';
@@ -466,8 +513,9 @@ const NotesGenerator = () => {
           <Button 
             onClick={generateNotes} 
             disabled={isGenerating || !inputText.trim()}
-            className="w-full hover-scale bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            variant="default"
             size="lg"
+            className="w-full hover-scale"
           >
             {isGenerating ? (
               <div className="flex flex-col items-center gap-1">

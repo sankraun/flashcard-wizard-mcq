@@ -426,6 +426,36 @@ const SavedNotes = () => {
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }
 
+  const openNoteInNewTab = (note: Note) => {
+    const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><title>${note.title}</title><style>
+      body { font-family: Calibri, Arial, sans-serif; background: #f9fafb; color: #222; margin: 0; padding: 2rem; }
+      .note-title { color: #0a1e50; font-size: 2rem; font-weight: bold; margin-bottom: 0.5em; }
+      .note-date { color: #888; font-size: 0.9rem; margin-bottom: 1em; }
+      .note-content { max-width: 700px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+      h1, h2, h3 { margin-top: 1.5em; }
+      h1 { color: #0a1e50; font-size: 1.5rem; }
+      h2 { color: #228b22; font-size: 1.2rem; }
+      h3 { color: #db2777; font-size: 1.1rem; }
+      mark { background: #fff9c4; border-radius: 4px; padding: 0 4px; }
+      ul { margin-left: 1.5em; }
+      li { margin-bottom: 0.3em; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+      td { border: 1px solid #bbb; padding: 6px 8px; font-size: 1rem; }
+      tr:first-child td { font-weight: bold; background: #f5f5f5; }
+      @media (max-width: 600px) { .note-content { padding: 1rem; } body { padding: 0.5rem; } }
+    </style></head><body><div class='note-content'>
+      <div class='note-title'>${note.title}</div>
+      <div class='note-date'>Created: ${new Date(note.created_at).toLocaleDateString()}</div>
+      <hr style="border:1px solid #eee; margin:12px 0;"/>
+      <div>${formatNotesForDisplay(note.content)}</div>
+    </div></body></html>`;
+    const newTab = window.open();
+    if (newTab) {
+      newTab.document.write(html);
+      newTab.document.close();
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -464,17 +494,22 @@ const SavedNotes = () => {
           Saved Notes ({filteredNotes.length})
         </CardTitle>
         <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search notes by title..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="border rounded px-2 py-1 text-sm w-full max-w-xs"
-          />
+          <div className="relative w-full max-w-xs">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" /></svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search notes by title..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-10 pr-3 py-2 rounded-full border bg-white text-gray-900 border-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors shadow-sm outline-none"
+            />
+          </div>
           <div className="flex items-center gap-1 ml-auto">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
-              className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+              className="border rounded px-2 py-1 text-sm w-full max-w-xs bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
               value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             >
@@ -495,15 +530,29 @@ const SavedNotes = () => {
                 onClick={() => exportToPDF(note)} 
                 variant="outline" 
                 size="sm"
+                className="flex items-center gap-1"
               >
+                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                  PDF
               </Button>
               <Button 
                 onClick={() => exportToDoc(note)} 
                 variant="outline" 
                 size="sm"
+                className="flex items-center gap-1"
               >
+                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                  DOC
+              </Button>
+              <Button
+                onClick={() => openNoteInNewTab(note)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                title="Open note in new tab"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 3h7v7m0-7L10 14m-7 7h7v-7" /></svg>
+                Open
               </Button>
               <Button 
                 onClick={() => deleteNote(note.id)} 

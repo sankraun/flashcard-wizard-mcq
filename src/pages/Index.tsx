@@ -36,6 +36,10 @@ const Index = () => {
     return 'User';
   };
 
+  useEffect(() => {
+    // Removed dark mode effect
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -52,13 +56,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #eff6ff 0%, #fff 50%, #ede9fe 100%)' }}>
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50 animate-fade-in">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50 animate-fade-in shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -68,33 +72,17 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">AI-Powered Study Assistant</p>
               </div>
             </div>
-            
             <div className="flex items-center gap-4">
-              <Button
-                onClick={() => navigate('/mcq-practice')}
-                variant="outline"
-                size="sm"
-                className="hover-scale flex items-center gap-2"
-              >
-                <Target className="w-4 h-4" />
-                Practice MCQs
-              </Button>
-              <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
-                <User className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">
-                  {`welcome, ${getNickname()}`}
-                </span>
-              </div>
+              <span className="text-base font-medium text-blue-900/80 hidden sm:inline-block">Welcome, {getNickname()}</span>
               <SettingsMenu onSignOut={signOut} />
             </div>
           </div>
         </div>
       </header>
-
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-2 sm:px-4 py-8 animate-fade-in">
         <Tabs defaultValue="mcqs" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white/60 backdrop-blur-sm border border-blue-100 animate-scale-in">
+          <TabsList className="grid w-full grid-cols-3 bg-white/60 backdrop-blur-sm border border-blue-100 animate-scale-in rounded-xl overflow-hidden">
             <TabsTrigger 
               value="mcqs" 
               className="flex items-center gap-2 data-[state=active]:bg-blue-50 transition-all duration-200"
@@ -117,18 +105,15 @@ const Index = () => {
               Saved Notes
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="mcqs" className="space-y-6 animate-fade-in">
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
               <MCQViewer key={refreshMCQs} />
             </div>
           </TabsContent>
-
           <TabsContent value="notes-generator" className="animate-fade-in">
             <NotesGenerator />
           </TabsContent>
-
           <TabsContent value="saved-notes" className="animate-fade-in">
             <SavedNotes />
           </TabsContent>

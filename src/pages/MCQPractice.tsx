@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,8 @@ import {
   Star,
   ArrowLeft,
   Play,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,6 +52,8 @@ const MCQPractice = () => {
   const [selectedChapter, setSelectedChapter] = useState<string>('');
   const [filteredMcqs, setFilteredMcqs] = useState<MCQ[]>([]);
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [deleteChapter, setDeleteChapter] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -75,7 +77,16 @@ const MCQPractice = () => {
 
       if (error) throw error;
 
-      setMcqs(data || []);
+      setMcqs(
+        (data || []).map((mcq: any) => ({
+          ...mcq,
+          options: Array.isArray(mcq.options)
+            ? mcq.options
+            : typeof mcq.options === 'string'
+              ? JSON.parse(mcq.options)
+              : [],
+        }))
+      );
     } catch (error) {
       console.error('Error loading MCQs:', error);
       toast({
@@ -199,6 +210,26 @@ const MCQPractice = () => {
     }
   };
 
+  const deleteMCQsByChapter = async () => {
+    if (!deleteChapter) return;
+    setDeleteLoading(true);
+    try {
+      const { error } = await supabase
+        .from('mcqs')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('chapter', deleteChapter);
+      if (error) throw error;
+      toast({ title: 'Success', description: `All MCQs for chapter "${deleteChapter}" deleted.` });
+      setDeleteChapter("");
+      loadMCQs();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete MCQs for this chapter', variant: 'destructive' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -210,44 +241,43 @@ const MCQPractice = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => navigate('/')}
-                variant="outline"
-                size="sm"
-                className="hover-scale"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <div className="flex items-center gap-2">
-                <Brain className="w-6 h-6 text-blue-600" />
-                <h1 className="text-xl font-bold text-blue-900">MCQ Practice</h1>
-              </div>
-            </div>
-            {filteredMcqs.length > 0 && !sessionCompleted && startTime && (
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Target className="w-4 h-4" />
-                  <span>Question {currentQuestionIndex + 1} of {filteredMcqs.length}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <BookOpen className="w-4 h-4" />
-                  <span>{answers.length} answered</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+  const uniqueChapters = getUniqueValues('chapter');
 
-      <main className="container mx-auto px-4 py-8">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 pb-16">
+      <main className="max-w-3xl mx-auto py-8 px-2">
+        {/* Back Button */}
+        <div className="mb-4 flex items-center">
+          <Button onClick={() => navigate(-1)} variant="outline" size="sm" className="hover-scale">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+
+        {/* Delete MCQs by Chapter Section */}
+        <div className="mb-6 flex flex-row gap-2 items-center justify-center">
+          <select
+            className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+            value={deleteChapter}
+            onChange={e => setDeleteChapter(e.target.value)}
+          >
+            <option value="">Select chapter...</option>
+            {uniqueChapters.map(ch => (
+              <option key={ch} value={ch}>{ch}</option>
+            ))}
+          </select>
+          <Button
+            onClick={deleteMCQsByChapter}
+            disabled={!deleteChapter || deleteLoading}
+            variant="ghost"
+            size="icon"
+            title="Delete all MCQs for this chapter"
+            className="text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="w-5 h-5" />
+          </Button>
+        </div>
+
         {mcqs.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardContent className="text-center py-8">
