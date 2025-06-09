@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Trash2, Calendar, Filter } from 'lucide-react';
+import { FileText, Trash2, Calendar, Filter, Brain, Download, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 interface Note {
@@ -19,8 +20,10 @@ interface Note {
 const SavedNotes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingMCQs, setGeneratingMCQs] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("All");
+  const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -51,6 +54,98 @@ const SavedNotes = () => {
     }
   };
 
+  const generateMCQsFromNote = async (note: Note) => {
+    if (!user) return;
+    
+    setGeneratingMCQs(note.id);
+    
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert MCQ generator. Generate exactly 5 multiple-choice questions from the provided notes. Each question should have 4 options (A, B, C, D) with only one correct answer. Format your response as a JSON array with this structure:
+              [
+                {
+                  "question": "Question text here?",
+                  "options": ["Option A", "Option B", "Option C", "Option D"],
+                  "correct_answer": 0,
+                  "explanation": "Detailed explanation of why this is correct",
+                  "difficulty": "Easy|Medium|Hard",
+                  "question_type": "Factual|Conceptual|Application|Analysis"
+                }
+              ]`
+            },
+            {
+              role: 'user',
+              content: `Generate MCQs from these notes:\n\nTitle: ${note.title}\n\nContent: ${note.content}`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const mcqsText = data.choices[0].message.content;
+      
+      let mcqs;
+      try {
+        mcqs = JSON.parse(mcqsText);
+      } catch (parseError) {
+        console.error('Failed to parse MCQs JSON:', parseError);
+        throw new Error('Failed to parse generated MCQs');
+      }
+
+      // Save MCQs to Supabase
+      const mcqsToSave = mcqs.map((mcq: any) => ({
+        user_id: user.id,
+        question: mcq.question,
+        options: mcq.options,
+        correct_answer: mcq.correct_answer,
+        explanation: mcq.explanation,
+        difficulty: mcq.difficulty,
+        question_type: mcq.question_type,
+        chapter: note.title,
+        original_text: note.content
+      }));
+
+      const { error: insertError } = await supabase
+        .from('mcqs')
+        .insert(mcqsToSave);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      toast({
+        title: "Success! ✨",
+        description: `Generated ${mcqs.length} MCQs from "${note.title}"`,
+      });
+
+    } catch (error) {
+      console.error('Error generating MCQs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate MCQs from note",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingMCQs(null);
+    }
+  };
+
   const deleteNote = async (noteId: string) => {
     try {
       const { error } = await supabase
@@ -78,23 +173,22 @@ const SavedNotes = () => {
   // Function to format notes for display with proper HTML and custom styles
   const formatNotesForDisplay = (text: string) => {
     return text
-      .replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>') // Highlight key points (bold)
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
-      .replace(/^### (.*$)/gm, '<h3 style="font-family: Calibri, Arial, sans-serif; font-size: 1.1rem;" class="text-lg font-bold mt-4 mb-2 text-pink-600">$1</h3>') // H3 headings (subheading, pink)
-      .replace(/^## (.*$)/gm, '<h2 style="font-family: Calibri, Arial, sans-serif; font-size: 1.25rem;" class="text-xl font-bold mt-6 mb-3 text-green-700">$1</h2>') // H2 headings (main subheading, green)
-      .replace(/^# (.*$)/gm, '<h1 style="font-family: Calibri, Arial, sans-serif; font-size: 1.5rem;" class="text-2xl font-bold mt-8 mb-4 text-blue-900">$1</h1>') // H1 headings (main heading)
-      .replace(/^- (.*$)/gm, '<li style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;" class="ml-4">• <span class="bg-yellow-100 px-1 rounded">$1</span></li>') // Bullet points highlighted
-      .replace(/\n\n/g, '</p><p class="mb-2" style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;">') // Paragraphs
-      .replace(/\n/g, '<br/>'); // Line breaks
+      .replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^### (.*$)/gm, '<h3 style="font-family: Calibri, Arial, sans-serif; font-size: 1.1rem;" class="text-lg font-bold mt-4 mb-2 text-pink-600">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 style="font-family: Calibri, Arial, sans-serif; font-size: 1.25rem;" class="text-xl font-bold mt-6 mb-3 text-green-700">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 style="font-family: Calibri, Arial, sans-serif; font-size: 1.5rem;" class="text-2xl font-bold mt-8 mb-4 text-blue-900">$1</h1>')
+      .replace(/^- (.*$)/gm, '<li style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;" class="ml-4">• <span class="bg-yellow-100 px-1 rounded">$1</span></li>')
+      .replace(/\n\n/g, '</p><p class="mb-2" style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;">')
+      .replace(/\n/g, '<br/>');
   };
 
-  // Function to clean markdown for plain text (PDF and Google Docs)
   const cleanMarkdownForExport = (text: string) => {
     return text
-      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers but keep text
-      .replace(/\*(.*?)\*/g, '$1')      // Remove italic markers but keep text
-      .replace(/^#{1,3}\s+/gm, '')      // Remove heading markers
-      .replace(/^-\s+/gm, '• ');        // Convert bullet points
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/^#{1,3}\s+/gm, '')
+      .replace(/^-\s+/gm, '• ');
   };
 
   const exportToPDF = (note: Note) => {
@@ -102,7 +196,7 @@ const SavedNotes = () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 40;
-    const lineHeight = 12; // very small font and tight spacing
+    const lineHeight = 12;
     let yPosition = margin;
     let pageNumber = 1;
     const addPageNumber = () => {
@@ -112,48 +206,40 @@ const SavedNotes = () => {
       pdf.setTextColor(0, 0, 0);
     };
 
-    // Title (H1)
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(10, 30, 80);
     pdf.text(note.title, margin, yPosition);
     yPosition += lineHeight * 2;
 
-    // Creation date
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Created: ${new Date(note.created_at).toLocaleDateString()}`, margin, yPosition);
     yPosition += lineHeight * 1.5;
 
-    // Divider
     pdf.setDrawColor(200, 200, 200);
     pdf.setLineWidth(0.5);
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += lineHeight * 0.7;
 
-    // Content
     const lines = note.content.split('\n');
     let inBulletList = false;
     let inTable = false;
     let tableRows = [];
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
-      // Table row (markdown style: | col1 | col2 | ... |)
       if (/^\s*\|(.+)\|\s*$/.test(line)) {
         const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
         tableRows.push(cells);
         inTable = true;
-        // If next line is not a table, render the table
         if (i + 1 >= lines.length || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
-          // Draw table
           const colCount = tableRows[0].length;
           const colWidth = (pageWidth - margin * 2) / colCount;
           let tableY = yPosition;
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
-          // Header row
           tableRows.forEach((row, rowIdx) => {
             let x = margin;
             row.forEach((cell, colIdx) => {
@@ -170,12 +256,10 @@ const SavedNotes = () => {
         }
         continue;
       } else if (inTable) {
-        // End of table
         tableRows = [];
         inTable = false;
         yPosition += lineHeight * 0.5;
       }
-      // H1
       if (/^# (.*)/.test(line)) {
         if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
@@ -191,7 +275,6 @@ const SavedNotes = () => {
         yPosition += lineHeight * 0.5;
         continue;
       }
-      // H2
       if (/^## (.*)/.test(line)) {
         if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
@@ -207,7 +290,6 @@ const SavedNotes = () => {
         yPosition += lineHeight * 0.5;
         continue;
       }
-      // H3
       if (/^### (.*)/.test(line)) {
         if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
         pdf.setFont('helvetica', 'bold');
@@ -223,7 +305,6 @@ const SavedNotes = () => {
         yPosition += lineHeight * 0.3;
         continue;
       }
-      // Bullet points (convert * and - to bullets)
       if (/^(- |\* )(.+)/.test(line)) {
         if (!inBulletList) { inBulletList = true; yPosition += lineHeight * 0.3; }
         pdf.setFont('helvetica', 'normal');
@@ -245,7 +326,6 @@ const SavedNotes = () => {
         inBulletList = false;
         yPosition += lineHeight * 0.5;
       }
-      // Key points (bold)
       if (/\*\*(.*?)\*\*/.test(line)) {
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(10);
@@ -262,7 +342,6 @@ const SavedNotes = () => {
         yPosition += lineHeight * 0.2;
         continue;
       }
-      // Italic (render as normal text, no asterisks)
       if (/\*(.*?)\*/.test(line)) {
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(10);
@@ -277,7 +356,6 @@ const SavedNotes = () => {
         yPosition += lineHeight * 0.1;
         continue;
       }
-      // Normal text
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.setTextColor(60, 60, 60);
@@ -298,7 +376,6 @@ const SavedNotes = () => {
   };
 
   const exportToDoc = (note: Note) => {
-    // Use the same structure and formatting as PDF export
     let htmlContent = `<html><head><meta charset='utf-8'><title>${note.title}</title></head><body style="font-family:Calibri,Arial,sans-serif;">
       <h1 style="color:#0a1e50;font-size:1.5rem;margin-bottom:0.5em;">${note.title}</h1>
       <div style="color:#888;font-size:0.8rem;margin-bottom:0.5em;">Created: ${new Date(note.created_at).toLocaleDateString()}</div>
@@ -310,13 +387,11 @@ const SavedNotes = () => {
     let tableRows = [];
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
-      // Table row (markdown style: | col1 | col2 | ... |)
       if (/^\s*\|(.+)\|\s*$/.test(line)) {
         const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
         tableRows.push(cells);
         inTable = true;
         if ((i + 1 >= lines.length) || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
-          // Render table
           htmlContent += '<table style="border-collapse:collapse;width:100%;margin-bottom:1em;">';
           tableRows.forEach((row, rowIdx) => {
             htmlContent += '<tr>';
@@ -334,25 +409,21 @@ const SavedNotes = () => {
         tableRows = [];
         inTable = false;
       }
-      // H1
       if (/^# (.*)/.test(line)) {
         if (inList) { htmlContent += '</ul>'; inList = false; }
         htmlContent += `<h2 style="color:#0a1e50;font-size:1.2rem;margin-top:1.5em;margin-bottom:0.5em;">${line.replace(/^# /, '')}</h2>`;
         continue;
       }
-      // H2
       if (/^## (.*)/.test(line)) {
         if (inList) { htmlContent += '</ul>'; inList = false; }
         htmlContent += `<h3 style="color:#228b22;font-size:1.1rem;margin-top:1.2em;margin-bottom:0.4em;">${line.replace(/^## /, '')}</h3>`;
         continue;
       }
-      // H3
       if (/^### (.*)/.test(line)) {
         if (inList) { htmlContent += '</ul>'; inList = false; }
         htmlContent += `<h4 style="color:#db2777;font-size:1rem;margin-top:1em;margin-bottom:0.3em;">${line.replace(/^### /, '')}</h4>`;
         continue;
       }
-      // Bullet points (convert * and - to bullets)
       if (/^(- |\* )(.+)/.test(line)) {
         if (!inList) { htmlContent += '<ul style="margin-bottom:0.5em;">'; inList = true; }
         let bulletText = line.replace(/^(- |\* )/, '');
@@ -364,17 +435,14 @@ const SavedNotes = () => {
         htmlContent += '</ul>';
         inList = false;
       }
-      // Key points (bold)
       if (/\*\*(.*?)\*\*/.test(line)) {
         htmlContent += `<div style="font-weight:bold;background:#fff9c4;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:0.2em;">${line.replace(/\*\*(.*?)\*\*/g, '$1')}</div><br/>`;
         continue;
       }
-      // Italic (render as normal text, no asterisks)
       if (/\*(.*?)\*/.test(line)) {
         htmlContent += `<span style="font-style:italic;">${line.replace(/\*(.*?)\*/g, '$1')}</span><br/>`;
         continue;
       }
-      // Normal text
       htmlContent += `<div style="font-size:1rem;margin-bottom:0.3em;">${line}</div>`;
     }
     if (inList) htmlContent += '</ul>';
@@ -428,9 +496,12 @@ const SavedNotes = () => {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="animate-fade-in">
         <CardContent className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Loading notes...</div>
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-muted-foreground">Loading notes...</div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -438,7 +509,7 @@ const SavedNotes = () => {
 
   if (notes.length === 0) {
     return (
-      <Card>
+      <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
@@ -446,7 +517,7 @@ const SavedNotes = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-8">
-          <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
           <h3 className="text-lg font-semibold mb-2">No notes yet</h3>
           <p className="text-muted-foreground">
             Generate your first structured notes to see them here
@@ -457,24 +528,28 @@ const SavedNotes = () => {
   }
 
   return (
-    <Card>
+    <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="w-5 h-5" />
           Saved Notes ({filteredNotes.length})
+          <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
         </CardTitle>
-        <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search notes by title..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="border rounded px-2 py-1 text-sm w-full max-w-xs"
-          />
-          <div className="flex items-center gap-1 ml-auto">
+        <div className="mt-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="Search notes by title..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            />
+            <FileText className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+          </div>
+          <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
-              className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+              className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             >
@@ -488,31 +563,91 @@ const SavedNotes = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {filteredNotes.map((note) => (
-          <div key={note.id} className="border rounded-lg p-4 flex items-center justify-between">
-            <div className="font-semibold text-lg truncate max-w-xs">{note.title}</div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => exportToPDF(note)} 
-                variant="outline" 
-                size="sm"
-              >
-                 PDF
-              </Button>
-              <Button 
-                onClick={() => exportToDoc(note)} 
-                variant="outline" 
-                size="sm"
-              >
-                 DOC
-              </Button>
-              <Button 
-                onClick={() => deleteNote(note.id)} 
-                variant="outline" 
-                size="sm"
-                className="text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+          <div 
+            key={note.id} 
+            className="border rounded-lg p-4 hover:shadow-md transition-all duration-200 animate-scale-in"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-lg truncate">{note.title}</h3>
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-500">
+                    {new Date(note.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                {expandedNote === note.id && (
+                  <div className="mt-3 p-4 bg-gray-50 rounded-lg animate-fade-in">
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ 
+                        __html: formatNotesForDisplay(note.content.substring(0, 500) + (note.content.length > 500 ? '...' : ''))
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+                  variant="outline"
+                  size="sm"
+                  className="hover-scale"
+                >
+                  {expandedNote === note.id ? 'Collapse' : 'Preview'}
+                </Button>
+                
+                <Button 
+                  onClick={() => generateMCQsFromNote(note)}
+                  disabled={generatingMCQs === note.id}
+                  variant="outline" 
+                  size="sm"
+                  className="hover-scale flex items-center gap-1"
+                >
+                  {generatingMCQs === note.id ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4" />
+                      Generate MCQs
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={() => exportToPDF(note)} 
+                  variant="outline" 
+                  size="sm"
+                  className="hover-scale flex items-center gap-1"
+                >
+                  <Download className="w-3 h-3" />
+                  PDF
+                </Button>
+                
+                <Button 
+                  onClick={() => exportToDoc(note)} 
+                  variant="outline" 
+                  size="sm"
+                  className="hover-scale flex items-center gap-1"
+                >
+                  <Download className="w-3 h-3" />
+                  DOC
+                </Button>
+                
+                <Button 
+                  onClick={() => deleteNote(note.id)} 
+                  variant="outline" 
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 hover-scale"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         ))}
