@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ const SavedNotes = () => {
   const [dateFilter, setDateFilter] = useState("All");
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const { user } = useAuth();
+  const [apiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
 
   useEffect(() => {
     if (user) {
@@ -60,52 +60,75 @@ const SavedNotes = () => {
     setGeneratingMCQs(note.id);
     
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const prompt = `Generate exactly 5 multiple-choice questions from the following notes. Each question should have 4 options (A, B, C, D) with only one correct answer. 
+
+Format your response as a valid JSON array with this exact structure:
+[
+  {
+    "question": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_answer": 0,
+    "explanation": "Detailed explanation of why this is correct",
+    "difficulty": "Easy",
+    "question_type": "Factual"
+  }
+]
+
+Notes Title: ${note.title}
+Notes Content: ${note.content}
+
+Return ONLY the JSON array, no additional text or formatting.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
+          contents: [
             {
-              role: 'system',
-              content: `You are an expert MCQ generator. Generate exactly 5 multiple-choice questions from the provided notes. Each question should have 4 options (A, B, C, D) with only one correct answer. Format your response as a JSON array with this structure:
-              [
+              parts: [
                 {
-                  "question": "Question text here?",
-                  "options": ["Option A", "Option B", "Option C", "Option D"],
-                  "correct_answer": 0,
-                  "explanation": "Detailed explanation of why this is correct",
-                  "difficulty": "Easy|Medium|Hard",
-                  "question_type": "Factual|Conceptual|Application|Analysis"
+                  text: prompt
                 }
-              ]`
-            },
-            {
-              role: 'user',
-              content: `Generate MCQs from these notes:\n\nTitle: ${note.title}\n\nContent: ${note.content}`
+              ]
             }
           ],
-          temperature: 0.7,
-          max_tokens: 2000
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        throw new Error(`Gemini API error: ${response.status}`);
       }
 
       const data = await response.json();
-      const mcqsText = data.choices[0].message.content;
+      const mcqsText = data.candidates[0].content.parts[0].text;
+      
+      // Clean the response to extract JSON
+      let cleanedText = mcqsText.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
       
       let mcqs;
       try {
-        mcqs = JSON.parse(mcqsText);
+        mcqs = JSON.parse(cleanedText);
       } catch (parseError) {
         console.error('Failed to parse MCQs JSON:', parseError);
+        console.log('Raw response:', mcqsText);
         throw new Error('Failed to parse generated MCQs');
+      }
+
+      if (!Array.isArray(mcqs) || mcqs.length === 0) {
+        throw new Error('Invalid MCQs format received');
       }
 
       // Save MCQs to Supabase
@@ -115,8 +138,8 @@ const SavedNotes = () => {
         options: mcq.options,
         correct_answer: mcq.correct_answer,
         explanation: mcq.explanation,
-        difficulty: mcq.difficulty,
-        question_type: mcq.question_type,
+        difficulty: mcq.difficulty || 'Medium',
+        question_type: mcq.question_type || 'Factual',
         chapter: note.title,
         original_text: note.content
       }));
@@ -138,7 +161,7 @@ const SavedNotes = () => {
       console.error('Error generating MCQs:', error);
       toast({
         title: "Error",
-        description: "Failed to generate MCQs from note",
+        description: "Failed to generate MCQs from note. Please try again.",
         variant: "destructive"
       });
     } finally {
