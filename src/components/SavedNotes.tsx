@@ -24,7 +24,6 @@ const SavedNotes = () => {
   const [dateFilter, setDateFilter] = useState("All");
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const { user } = useAuth();
-  const [apiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
 
   useEffect(() => {
     if (user) {
@@ -60,6 +59,25 @@ const SavedNotes = () => {
     setGeneratingMCQs(note.id);
     
     try {
+      // First, fetch the latest note data from Supabase
+      console.log('Fetching note from Supabase:', note.id);
+      const { data: noteData, error: noteError } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('id', note.id)
+        .single();
+
+      if (noteError) {
+        console.error('Error fetching note:', noteError);
+        throw new Error('Failed to fetch note data');
+      }
+
+      if (!noteData) {
+        throw new Error('Note not found');
+      }
+
+      console.log('Fetched note data:', noteData);
+
       const prompt = `Generate exactly 5 multiple-choice questions from the following notes. Each question should have 4 options (A, B, C, D) with only one correct answer. 
 
 IMPORTANT: Use only these exact values for question_type: "Factual", "Conceptual", "Application", "Analytical"
@@ -77,14 +95,14 @@ Format your response as a valid JSON array with this exact structure:
   }
 ]
 
-Notes Title: ${note.title}
-Notes Content: ${note.content}
+Notes Title: ${noteData.title}
+Notes Content: ${noteData.content}
 
 Return ONLY the JSON array, no additional text or formatting.`;
 
       console.log('Generating MCQs with Gemini API...');
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,13 +129,14 @@ Return ONLY the JSON array, no additional text or formatting.`;
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Gemini API error:', response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status}`);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       console.log('Gemini API response:', data);
       
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.error('Invalid response format:', data);
         throw new Error('Invalid response format from Gemini API');
       }
       
@@ -137,32 +156,42 @@ Return ONLY the JSON array, no additional text or formatting.`;
         mcqs = JSON.parse(cleanedText);
       } catch (parseError) {
         console.error('Failed to parse MCQs JSON:', parseError);
-        console.log('Cleaned text:', cleanedText);
-        throw new Error('Failed to parse generated MCQs');
+        console.log('Cleaned text that failed to parse:', cleanedText);
+        throw new Error('Failed to parse generated MCQs - invalid JSON format');
       }
 
       if (!Array.isArray(mcqs) || mcqs.length === 0) {
-        throw new Error('Invalid MCQs format received');
+        console.error('Invalid MCQs format:', mcqs);
+        throw new Error('Invalid MCQs format received - expected array');
       }
 
       console.log('Parsed MCQs:', mcqs);
 
-      // Validate and clean MCQ data before saving - using capitalized values
-      const validQuestionTypes = ['Factual', 'Conceptual', 'Application', 'Analytical'];
-      const validDifficulties = ['Easy', 'Medium', 'Hard'];
+      // Validate and prepare MCQ data for database insertion
+      const mcqsToSave = mcqs.map((mcq: any, index: number) => {
+        // Validate required fields
+        if (!mcq.question || !mcq.options || !Array.isArray(mcq.options) || mcq.options.length !== 4) {
+          throw new Error(`Invalid MCQ format at index ${index}: missing question or invalid options`);
+        }
 
-      const mcqsToSave = mcqs.map((mcq: any) => {
-        let questionType = mcq.question_type || 'Factual';
-        // Normalize the question type to proper case
-        if (questionType.toLowerCase() === 'factual') questionType = 'Factual';
-        else if (questionType.toLowerCase() === 'conceptual') questionType = 'Conceptual';
-        else if (questionType.toLowerCase() === 'application') questionType = 'Application';
-        else if (questionType.toLowerCase() === 'analytical') questionType = 'Analytical';
-        else questionType = 'Factual'; // default fallback
+        if (typeof mcq.correct_answer !== 'number' || mcq.correct_answer < 0 || mcq.correct_answer > 3) {
+          throw new Error(`Invalid correct_answer at index ${index}: must be a number between 0-3`);
+        }
 
-        let difficulty = mcq.difficulty || 'Medium';
-        if (!validDifficulties.includes(difficulty)) {
-          difficulty = 'Medium';
+        // Ensure valid question_type (case-insensitive matching)
+        let questionType = 'Factual'; // default
+        if (mcq.question_type) {
+          const type = mcq.question_type.toLowerCase();
+          if (type === 'factual') questionType = 'Factual';
+          else if (type === 'conceptual') questionType = 'Conceptual';
+          else if (type === 'application') questionType = 'Application';
+          else if (type === 'analytical') questionType = 'Analytical';
+        }
+
+        // Ensure valid difficulty
+        let difficulty = 'Medium'; // default
+        if (mcq.difficulty && ['Easy', 'Medium', 'Hard'].includes(mcq.difficulty)) {
+          difficulty = mcq.difficulty;
         }
 
         return {
@@ -170,11 +199,11 @@ Return ONLY the JSON array, no additional text or formatting.`;
           question: mcq.question,
           options: mcq.options,
           correct_answer: mcq.correct_answer,
-          explanation: mcq.explanation,
+          explanation: mcq.explanation || 'No explanation provided',
           difficulty: difficulty,
           question_type: questionType,
-          chapter: note.title,
-          original_text: note.content
+          chapter: noteData.title,
+          original_text: noteData.content
         };
       });
 
@@ -186,19 +215,19 @@ Return ONLY the JSON array, no additional text or formatting.`;
 
       if (insertError) {
         console.error('Database insert error:', insertError);
-        throw insertError;
+        throw new Error(`Failed to save MCQs to database: ${insertError.message}`);
       }
 
       toast({
         title: "Success! ✨",
-        description: `Generated ${mcqs.length} MCQs from "${note.title}"`,
+        description: `Generated ${mcqs.length} MCQs from "${noteData.title}"`,
       });
 
     } catch (error) {
       console.error('Error generating MCQs:', error);
       toast({
         title: "Error",
-        description: "Failed to generate MCQs from note. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate MCQs from note. Please try again.",
         variant: "destructive"
       });
     } finally {
