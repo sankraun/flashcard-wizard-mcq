@@ -62,7 +62,7 @@ const SavedNotes = () => {
     try {
       const prompt = `Generate exactly 5 multiple-choice questions from the following notes. Each question should have 4 options (A, B, C, D) with only one correct answer. 
 
-IMPORTANT: Use only these exact values for question_type: "factual", "conceptual", "application", "analytical"
+IMPORTANT: Use only these exact values for question_type: "Factual", "Conceptual", "Application", "Analytical"
 IMPORTANT: Use only these exact values for difficulty: "Easy", "Medium", "Hard"
 
 Format your response as a valid JSON array with this exact structure:
@@ -73,7 +73,7 @@ Format your response as a valid JSON array with this exact structure:
     "correct_answer": 0,
     "explanation": "Detailed explanation of why this is correct",
     "difficulty": "Easy",
-    "question_type": "factual"
+    "question_type": "Factual"
   }
 ]
 
@@ -147,15 +147,18 @@ Return ONLY the JSON array, no additional text or formatting.`;
 
       console.log('Parsed MCQs:', mcqs);
 
-      // Validate and clean MCQ data before saving
-      const validQuestionTypes = ['factual', 'conceptual', 'application', 'analytical'];
+      // Validate and clean MCQ data before saving - using capitalized values
+      const validQuestionTypes = ['Factual', 'Conceptual', 'Application', 'Analytical'];
       const validDifficulties = ['Easy', 'Medium', 'Hard'];
 
       const mcqsToSave = mcqs.map((mcq: any) => {
-        let questionType = mcq.question_type || 'factual';
-        if (!validQuestionTypes.includes(questionType)) {
-          questionType = 'factual';
-        }
+        let questionType = mcq.question_type || 'Factual';
+        // Normalize the question type to proper case
+        if (questionType.toLowerCase() === 'factual') questionType = 'Factual';
+        else if (questionType.toLowerCase() === 'conceptual') questionType = 'Conceptual';
+        else if (questionType.toLowerCase() === 'application') questionType = 'Application';
+        else if (questionType.toLowerCase() === 'analytical') questionType = 'Analytical';
+        else questionType = 'Factual'; // default fallback
 
         let difficulty = mcq.difficulty || 'Medium';
         if (!validDifficulties.includes(difficulty)) {
