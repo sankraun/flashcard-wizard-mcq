@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,7 +70,7 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
       Return a JSON array with this exact structure:
       [
         {
-          "question": "Question text here",
+          "question": "Question text here (do NOT include phrases like 'according to the text', 'based on the passage', or similar)",
           "options": ["Option A", "Option B", "Option C", "Option D"],
           "correctAnswer": 0,
           "explanation": "Detailed explanation of why this is correct",
@@ -82,8 +81,9 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
       Make sure questions are:
       - Clear and unambiguous
       - Based directly on the provided text
+      - Do NOT include phrases like 'according to the text', 'based on the passage', 'as per the above', or similar in the question stem
       - Have plausible distractors
-      - Include comprehensive explanations
+      - Include comprehensive explanations (do NOT include phrases like 'according to the text', 'based on the passage', 'as per the above', or similar in the explanation)
       ${mode === 'clinical' ? '- Focus on practical application and case scenarios' : ''}
     `;
 
@@ -344,8 +344,9 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
         <Button 
           onClick={generateMCQs} 
           disabled={isGenerating || !inputText.trim()}
-          className="w-full hover-scale bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          variant="default"
           size="lg"
+          className="w-full hover-scale mt-2"
         >
           {isGenerating ? (
             <div className="flex flex-col items-center gap-1">
