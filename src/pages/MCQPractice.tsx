@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,13 +75,7 @@ const MCQPractice = () => {
 
       if (error) throw error;
 
-      // Cast the data to proper types
-      const typedMCQs: MCQ[] = (data || []).map(mcq => ({
-        ...mcq,
-        options: mcq.options as string[]
-      }));
-
-      setMcqs(typedMCQs);
+      setMcqs(data || []);
     } catch (error) {
       console.error('Error loading MCQs:', error);
       toast({

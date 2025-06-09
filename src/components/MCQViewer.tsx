@@ -1,24 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Brain, 
-  CheckCircle, 
-  XCircle, 
-  Trash2, 
-  RotateCcw, 
-  Eye, 
-  EyeOff,
-  Sparkles,
-  Target,
-  BookOpen,
-  Filter,
-  Calendar
-} from 'lucide-react';
+import { BookOpen, Trash2, Calendar, CheckCircle, XCircle, RefreshCw, Target, Award, BarChart, Brain, TrendingUp } from 'lucide-react';
 
 interface MCQ {
   id: string;
@@ -27,27 +16,21 @@ interface MCQ {
   correct_answer: number;
   explanation: string;
   difficulty: string;
-  chapter: string | null;
   question_type: string;
+  chapter: string | null;
   created_at: string;
-}
-
-interface Answer {
-  questionId: string;
-  selectedAnswer: number;
-  isCorrect: boolean;
 }
 
 const MCQViewer = () => {
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
   const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [showAnswers, setShowAnswers] = useState(false);
-  const [currentMCQIndex, setCurrentMCQIndex] = useState(0);
-  const [practiceMode, setPracticeMode] = useState(false);
-  const [showExplanations, setShowExplanations] = useState<{ [key: string]: boolean }>({});
-  const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
-  const [typeFilter, setTypeFilter] = useState<string>('All');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [sessionComplete, setSessionComplete] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -66,18 +49,20 @@ const MCQViewer = () => {
 
       if (error) throw error;
 
-      // Cast the data to proper types
-      const typedMCQs: MCQ[] = (data || []).map(mcq => ({
+      const typedData = (data || []).map(mcq => ({
         ...mcq,
-        options: mcq.options as string[]
+        options: Array.isArray(mcq.options) ? mcq.options as string[] : []
       }));
 
-      setMcqs(typedMCQs);
+      setMcqs(typedData);
+      setUserAnswers(new Array(typedData.length || 0).fill(null));
+      setCorrectCount(0);
+      setSessionComplete(false);
     } catch (error) {
       console.error('Error loading MCQs:', error);
       toast({
         title: "Error",
-        description: "Failed to load saved MCQs",
+        description: "Failed to load MCQs",
         variant: "destructive"
       });
     } finally {
@@ -86,15 +71,27 @@ const MCQViewer = () => {
   };
 
   const deleteMCQ = async (mcqId: string) => {
+    setDeleting(mcqId);
     try {
       const { error } = await supabase
         .from('mcqs')
         .delete()
-        .eq('id', mcqId);
+        .eq('id', mcqId)
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 
-      setMcqs(mcqs.filter(mcq => mcq.id !== mcqId));
+      const newMcqs = mcqs.filter(mcq => mcq.id !== mcqId);
+      setMcqs(newMcqs);
+      
+      if (currentIndex >= newMcqs.length && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1);
+      }
+      
+      const newAnswers = [...userAnswers];
+      newAnswers.splice(currentIndex, 1);
+      setUserAnswers(newAnswers);
+      
       toast({
         title: "Success",
         description: "MCQ deleted successfully"
@@ -106,110 +103,106 @@ const MCQViewer = () => {
         description: "Failed to delete MCQ",
         variant: "destructive"
       });
+    } finally {
+      setDeleting(null);
     }
   };
 
-  const handleAnswerSelect = (mcqId: string, answerIndex: number) => {
-    const mcq = mcqs.find(m => m.id === mcqId);
-    if (!mcq) return;
-
-    const isCorrect = answerIndex === mcq.correct_answer;
-    const existingAnswerIndex = answers.findIndex(answer => answer.questionId === mcqId);
+  const handleAnswerSelect = (answerIndex: number) => {
+    if (showAnswer) return;
     
-    const newAnswer: Answer = {
-      questionId: mcqId,
-      selectedAnswer: answerIndex,
-      isCorrect
-    };
+    setSelectedAnswer(answerIndex);
+    const newAnswers = [...userAnswers];
+    newAnswers[currentIndex] = answerIndex;
+    setUserAnswers(newAnswers);
+  };
 
-    if (existingAnswerIndex >= 0) {
-      const updatedAnswers = [...answers];
-      updatedAnswers[existingAnswerIndex] = newAnswer;
-      setAnswers(updatedAnswers);
-    } else {
-      setAnswers([...answers, newAnswer]);
+  const checkAnswer = () => {
+    setShowAnswer(true);
+    if (selectedAnswer === mcqs[currentIndex].correct_answer) {
+      setCorrectCount(prev => prev + 1);
     }
-
-    if (practiceMode) {
-      setShowExplanations(prev => ({ ...prev, [mcqId]: true }));
-    }
-  };
-
-  const calculateResults = () => {
-    const totalQuestions = answers.length;
-    const correctAnswers = answers.filter(answer => answer.isCorrect).length;
-    const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
-    
-    return {
-      totalQuestions,
-      correctAnswers,
-      accuracy: Math.round(accuracy)
-    };
-  };
-
-  const resetQuiz = () => {
-    setAnswers([]);
-    setShowAnswers(false);
-    setShowExplanations({});
-    setCurrentMCQIndex(0);
-    setPracticeMode(false);
-  };
-
-  const startPracticeMode = () => {
-    resetQuiz();
-    setPracticeMode(true);
-    setCurrentMCQIndex(0);
   };
 
   const nextQuestion = () => {
-    if (currentMCQIndex < filteredMCQs.length - 1) {
-      setCurrentMCQIndex(currentMCQIndex + 1);
+    if (currentIndex < mcqs.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setSelectedAnswer(userAnswers[currentIndex + 1]);
+      setShowAnswer(userAnswers[currentIndex + 1] !== null);
+    } else {
+      // Complete the session
+      setSessionComplete(true);
+      toast({
+        title: "Practice Session Complete! 🎉",
+        description: `You scored ${getScorePercentage()}% with ${correctCount} correct answers`,
+      });
     }
   };
 
   const previousQuestion = () => {
-    if (currentMCQIndex > 0) {
-      setCurrentMCQIndex(currentMCQIndex - 1);
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setSelectedAnswer(userAnswers[currentIndex - 1]);
+      setShowAnswer(userAnswers[currentIndex - 1] !== null);
     }
+  };
+
+  const restartSession = () => {
+    setCurrentIndex(0);
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    setUserAnswers(new Array(mcqs.length).fill(null));
+    setCorrectCount(0);
+    setSessionComplete(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    switch (difficulty) {
+      case 'Easy':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Medium':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Hard':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'factual': return 'bg-blue-100 text-blue-800';
-      case 'conceptual': return 'bg-purple-100 text-purple-800';
-      case 'application': return 'bg-indigo-100 text-indigo-800';
-      case 'analysis': return 'bg-pink-100 text-pink-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getScorePercentage = () => {
+    const answeredQuestions = userAnswers.filter(answer => answer !== null).length;
+    return answeredQuestions > 0 ? Math.round((correctCount / answeredQuestions) * 100) : 0;
   };
 
-  const filteredMCQs = mcqs.filter(mcq => {
-    const matchesDifficulty = difficultyFilter === 'All' || mcq.difficulty === difficultyFilter;
-    const matchesType = typeFilter === 'All' || mcq.question_type === typeFilter;
-    return matchesDifficulty && matchesType;
-  });
-
-  const getUniqueValues = (field: 'difficulty' | 'question_type') => {
-    const values = mcqs.map(mcq => mcq[field]).filter(Boolean);
-    return [...new Set(values)];
+  const getAccuracyByDifficulty = () => {
+    const difficulties = ['Easy', 'Medium', 'Hard'];
+    return difficulties.map(diff => {
+      const questionsOfDifficulty = mcqs.filter((mcq, index) => 
+        mcq.difficulty === diff && userAnswers[index] !== null
+      );
+      const correctAnswers = questionsOfDifficulty.filter((mcq, mcqIndex) => {
+        const originalIndex = mcqs.findIndex(m => m.id === mcq.id);
+        return userAnswers[originalIndex] === mcq.correct_answer;
+      }).length;
+      
+      return {
+        difficulty: diff,
+        accuracy: questionsOfDifficulty.length > 0 ? Math.round((correctAnswers / questionsOfDifficulty.length) * 100) : 0,
+        count: questionsOfDifficulty.length
+      };
+    });
   };
 
   if (loading) {
     return (
       <Card className="animate-fade-in">
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-muted-foreground">Loading MCQs...</div>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-4 text-muted-foreground">
+            <div className="relative">
+              <RefreshCw className="w-8 h-8 animate-spin" />
+              <div className="absolute inset-0 w-8 h-8 border-2 border-blue-200 rounded-full animate-pulse"></div>
+            </div>
+            <p className="text-lg font-medium">Loading your saved MCQs...</p>
           </div>
         </CardContent>
       </Card>
@@ -221,359 +214,289 @@ const MCQViewer = () => {
       <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5" />
-            Generated MCQs
+            <Brain className="w-5 h-5 text-blue-600" />
+            Practice Saved MCQs
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center py-8">
-          <Brain className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
-          <h3 className="text-lg font-semibold mb-2">No MCQs generated yet</h3>
-          <p className="text-muted-foreground">
-            Generate your first MCQs to see them here
-          </p>
+        <CardContent className="text-center py-12">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <BookOpen className="w-20 h-20 text-muted-foreground animate-pulse" />
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                <Target className="w-3 h-3 text-blue-600" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">No Saved MCQs Found</h3>
+              <p className="text-muted-foreground max-w-md">
+                Generate MCQs from study material first to start practicing
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (practiceMode) {
-    const currentMCQ = filteredMCQs[currentMCQIndex];
-    const currentAnswer = answers.find(answer => answer.questionId === currentMCQ.id);
-
+  // Session Complete View
+  if (sessionComplete) {
+    const accuracyData = getAccuracyByDifficulty();
+    
     return (
-      <Card className="animate-fade-in">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              Practice Mode - Question {currentMCQIndex + 1} of {filteredMCQs.length}
+      <div className="space-y-6 animate-fade-in">
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+              <Award className="w-8 h-8 text-yellow-600" />
+              Practice Session Complete!
             </CardTitle>
-            <div className="flex gap-2">
-              <Badge className={getDifficultyColor(currentMCQ.difficulty)}>
-                {currentMCQ.difficulty}
-              </Badge>
-              <Badge className={getTypeColor(currentMCQ.question_type)}>
-                {currentMCQ.question_type}
-              </Badge>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium">Overall Score</span>
+                </div>
+                <div className="text-3xl font-bold text-blue-600">{getScorePercentage()}%</div>
+                <div className="text-sm text-muted-foreground">{correctCount}/{userAnswers.filter(a => a !== null).length} correct</div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <BarChart className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">Questions Completed</span>
+                </div>
+                <div className="text-3xl font-bold text-green-600">{mcqs.length}</div>
+                <div className="text-sm text-muted-foreground">Total questions</div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium">Performance</span>
+                </div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {getScorePercentage() >= 80 ? 'Excellent' : getScorePercentage() >= 60 ? 'Good' : 'Needs Work'}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentMCQIndex + 1) / filteredMCQs.length) * 100}%` }}
-            ></div>
+
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <BarChart className="w-4 h-4" />
+                Accuracy by Difficulty
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                {accuracyData.map(({ difficulty, accuracy, count }) => (
+                  <div key={difficulty} className="text-center">
+                    <Badge className={`${getDifficultyColor(difficulty)} mb-2`}>
+                      {difficulty}
+                    </Badge>
+                    <div className="text-2xl font-bold">{accuracy}%</div>
+                    <div className="text-xs text-muted-foreground">{count} questions</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button onClick={restartSession} className="hover-scale">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Practice Again
+              </Button>
+              <Button onClick={loadMCQs} variant="outline" className="hover-scale">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Back to MCQs
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentMCQ = mcqs[currentIndex];
+  const progress = ((currentIndex + 1) / mcqs.length) * 100;
+  const scorePercentage = getScorePercentage();
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-scale-in">
+        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Progress</p>
+                <p className="text-2xl font-bold">{currentIndex + 1}/{mcqs.length}</p>
+              </div>
+              <BarChart className="w-8 h-8 text-blue-600" />
+            </div>
+            <Progress value={progress} className="mt-3" />
+          </CardContent>
+        </Card>
+
+        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Score</p>
+                <p className="text-2xl font-bold">{scorePercentage}%</p>
+              </div>
+              <Award className="w-8 h-8 text-green-600" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {correctCount} correct answers
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p className="text-sm font-semibold">
+                  {new Date(currentMCQ.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <Calendar className="w-8 h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Current MCQ */}
+      <Card className="animate-fade-in transition-all duration-300 hover:shadow-xl border-2 hover:border-blue-200">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <Badge className={`${getDifficultyColor(currentMCQ.difficulty)} animate-scale-in border`}>
+                  {currentMCQ.difficulty}
+                </Badge>
+                {currentMCQ.chapter && (
+                  <Badge variant="outline" className="animate-scale-in">
+                    {currentMCQ.chapter}
+                  </Badge>
+                )}
+                <Badge variant="secondary" className="animate-scale-in">
+                  Question {currentIndex + 1}
+                </Badge>
+              </div>
+              <CardTitle className="text-lg leading-relaxed">
+                {currentMCQ.question}
+              </CardTitle>
+            </div>
+            <Button
+              onClick={() => deleteMCQ(currentMCQ.id)}
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover-scale border-red-200 hover:border-red-300"
+              disabled={deleting === currentMCQ.id}
+            >
+              {deleting === currentMCQ.id ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="text-lg leading-relaxed">
-            {currentMCQ.question}
+          <div className="grid gap-3">
+            {currentMCQ.options.map((option, index) => {
+              const isSelected = selectedAnswer === index;
+              const isCorrect = index === currentMCQ.correct_answer;
+              const showCorrectness = showAnswer && (isSelected || isCorrect);
+              
+              return (
+                <Button
+                  key={index}
+                  onClick={() => handleAnswerSelect(index)}
+                  variant={isSelected ? "default" : "outline"}
+                  className={`
+                    justify-start text-left h-auto py-4 px-5 transition-all duration-300 hover-scale
+                    ${showCorrectness ? (
+                      isCorrect ? 'bg-green-50 border-green-500 text-green-800 hover:bg-green-100' :
+                      isSelected ? 'bg-red-50 border-red-500 text-red-800 hover:bg-red-100' : ''
+                    ) : isSelected ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'}
+                    ${showAnswer ? 'pointer-events-none' : 'cursor-pointer'}
+                  `}
+                  disabled={showAnswer}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                      ${isSelected && !showAnswer ? 'bg-blue-600 text-white' : 
+                        showCorrectness && isCorrect ? 'bg-green-600 text-white' :
+                        showCorrectness && isSelected && !isCorrect ? 'bg-red-600 text-white' :
+                        'bg-gray-200 text-gray-600'}
+                      transition-all duration-200
+                    `}>
+                      {String.fromCharCode(65 + index)}
+                    </div>
+                    <span className="flex-1 text-base">{option}</span>
+                    {showCorrectness && isCorrect && (
+                      <CheckCircle className="w-5 h-5 text-green-600 animate-scale-in" />
+                    )}
+                    {showCorrectness && isSelected && !isCorrect && (
+                      <XCircle className="w-5 h-5 text-red-600 animate-scale-in" />
+                    )}
+                  </div>
+                </Button>
+              );
+            })}
           </div>
 
-          <div className="space-y-3">
-            {currentMCQ.options.map((option, index) => (
-              <Button
-                key={index}
-                onClick={() => handleAnswerSelect(currentMCQ.id, index)}
-                variant={currentAnswer?.selectedAnswer === index ? "default" : "outline"}
-                className={`w-full justify-start text-left h-auto p-4 transition-all duration-200 ${
-                  showExplanations[currentMCQ.id] && index === currentMCQ.correct_answer
-                    ? 'bg-green-100 border-green-500 text-green-800'
-                    : showExplanations[currentMCQ.id] && currentAnswer?.selectedAnswer === index && index !== currentMCQ.correct_answer
-                    ? 'bg-red-100 border-red-500 text-red-800'
-                    : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
-                    {String.fromCharCode(65 + index)}
-                  </span>
-                  <span>{option}</span>
-                  {showExplanations[currentMCQ.id] && index === currentMCQ.correct_answer && (
-                    <CheckCircle className="w-5 h-5 text-green-600 ml-auto" />
-                  )}
-                  {showExplanations[currentMCQ.id] && currentAnswer?.selectedAnswer === index && index !== currentMCQ.correct_answer && (
-                    <XCircle className="w-5 h-5 text-red-600 ml-auto" />
-                  )}
+          {showAnswer && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 animate-fade-in border border-blue-100">
+              <div className="flex items-start gap-3">
+                <BookOpen className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-blue-900 mb-2">Explanation:</h4>
+                  <p className="text-blue-800 leading-relaxed">{currentMCQ.explanation}</p>
                 </div>
-              </Button>
-            ))}
-          </div>
-
-          {showExplanations[currentMCQ.id] && (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 animate-fade-in">
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Explanation:
-              </h4>
-              <p className="text-sm leading-relaxed">{currentMCQ.explanation}</p>
+              </div>
             </div>
           )}
 
-          <div className="flex justify-between items-center">
-            <Button
-              onClick={previousQuestion}
-              disabled={currentMCQIndex === 0}
-              variant="outline"
-              className="hover-scale"
-            >
-              Previous
-            </Button>
-            
-            <div className="text-sm text-muted-foreground">
-              {answers.length} / {filteredMCQs.length} answered
-            </div>
-            
-            {currentMCQIndex === filteredMCQs.length - 1 ? (
-              <Button
-                onClick={() => {
-                  setPracticeMode(false);
-                  setShowAnswers(true);
-                }}
-                className="hover-scale"
+          <div className="flex gap-3 pt-2">
+            {!showAnswer ? (
+              <Button 
+                onClick={checkAnswer} 
+                disabled={selectedAnswer === null}
+                className="flex-1 hover-scale bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                size="lg"
               >
-                Finish Practice
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Check Answer
               </Button>
             ) : (
-              <Button
-                onClick={nextQuestion}
-                className="hover-scale"
-              >
-                Next
-              </Button>
+              <div className="flex gap-3 w-full">
+                <Button 
+                  onClick={previousQuestion} 
+                  disabled={currentIndex === 0}
+                  variant="outline"
+                  className="hover-scale"
+                  size="lg"
+                >
+                  Previous
+                </Button>
+                <Button 
+                  onClick={nextQuestion} 
+                  className="flex-1 hover-scale"
+                  size="lg"
+                >
+                  {currentIndex === mcqs.length - 1 ? 'Complete Practice' : 'Next Question'}
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
-    );
-  }
-
-  if (showAnswers) {
-    const results = calculateResults();
-    
-    return (
-      <Card className="animate-fade-in">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-green-600" />
-            Practice Results
-            <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {results.accuracy}%
-            </div>
-            <div className="text-lg text-gray-600 mb-4">
-              {results.correctAnswers} out of {results.totalQuestions} correct
-            </div>
-            <div className="flex justify-center gap-4">
-              <div className="text-center">
-                <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                <div className="text-sm text-gray-500">Correct: {results.correctAnswers}</div>
-              </div>
-              <div className="text-center">
-                <XCircle className="w-6 h-6 text-red-600 mx-auto mb-1" />
-                <div className="text-sm text-gray-500">Incorrect: {results.totalQuestions - results.correctAnswers}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex gap-4">
-            <Button onClick={resetQuiz} className="flex-1 hover-scale">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
-            <Button onClick={startPracticeMode} variant="outline" className="flex-1 hover-scale">
-              <Target className="w-4 h-4 mr-2" />
-              New Practice
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="animate-fade-in">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="w-5 h-5" />
-          Generated MCQs ({filteredMCQs.length})
-          <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
-        </CardTitle>
-        
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <select
-              className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              value={difficultyFilter}
-              onChange={e => setDifficultyFilter(e.target.value)}
-            >
-              <option value="All">All Difficulties</option>
-              {getUniqueValues('difficulty').map(difficulty => (
-                <option key={difficulty} value={difficulty}>{difficulty}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-gray-500" />
-            <select
-              className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-            >
-              <option value="All">All Types</option>
-              {getUniqueValues('question_type').map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          
-          <Button
-            onClick={startPracticeMode}
-            disabled={filteredMCQs.length === 0}
-            className="hover-scale ml-auto"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            Start Practice
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {filteredMCQs.map((mcq, index) => {
-          const userAnswer = answers.find(answer => answer.questionId === mcq.id);
-          
-          return (
-            <div key={mcq.id} className="border rounded-lg p-6 hover:shadow-md transition-all duration-200 animate-scale-in">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-semibold">
-                    {index + 1}
-                  </span>
-                  <div className="flex gap-2">
-                    <Badge className={getDifficultyColor(mcq.difficulty)}>
-                      {mcq.difficulty}
-                    </Badge>
-                    <Badge className={getTypeColor(mcq.question_type)}>
-                      {mcq.question_type}
-                    </Badge>
-                    {mcq.chapter && (
-                      <Badge variant="outline">
-                        {mcq.chapter}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setShowExplanations(prev => ({ 
-                      ...prev, 
-                      [mcq.id]: !prev[mcq.id] 
-                    }))}
-                    variant="outline"
-                    size="sm"
-                    className="hover-scale"
-                  >
-                    {showExplanations[mcq.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
-                  
-                  <Button
-                    onClick={() => deleteMCQ(mcq.id)}
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 hover-scale"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium mb-4 leading-relaxed">
-                {mcq.question}
-              </h3>
-
-              <div className="space-y-3 mb-4">
-                {mcq.options.map((option, optionIndex) => (
-                  <Button
-                    key={optionIndex}
-                    onClick={() => handleAnswerSelect(mcq.id, optionIndex)}
-                    variant={userAnswer?.selectedAnswer === optionIndex ? "default" : "outline"}
-                    className={`w-full justify-start text-left h-auto p-4 transition-all duration-200 ${
-                      userAnswer && optionIndex === mcq.correct_answer
-                        ? 'bg-green-100 border-green-500 text-green-800'
-                        : userAnswer && userAnswer.selectedAnswer === optionIndex && optionIndex !== mcq.correct_answer
-                        ? 'bg-red-100 border-red-500 text-red-800'
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
-                        {String.fromCharCode(65 + optionIndex)}
-                      </span>
-                      <span>{option}</span>
-                      {userAnswer && optionIndex === mcq.correct_answer && (
-                        <CheckCircle className="w-5 h-5 text-green-600 ml-auto" />
-                      )}
-                      {userAnswer && userAnswer.selectedAnswer === optionIndex && optionIndex !== mcq.correct_answer && (
-                        <XCircle className="w-5 h-5 text-red-600 ml-auto" />
-                      )}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-
-              {showExplanations[mcq.id] && (
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 animate-fade-in">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" />
-                    Explanation:
-                  </h4>
-                  <p className="text-sm leading-relaxed">{mcq.explanation}</p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-4 pt-3 border-t text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(mcq.created_at).toLocaleDateString()}
-                </div>
-                {userAnswer && (
-                  <div className={`flex items-center gap-1 ${userAnswer.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                    {userAnswer.isCorrect ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                    {userAnswer.isCorrect ? 'Correct' : 'Incorrect'}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {answers.length > 0 && (
-          <div className="flex justify-center gap-4 pt-6 border-t">
-            <Button
-              onClick={() => setShowAnswers(true)}
-              className="hover-scale"
-            >
-              <Target className="w-4 h-4 mr-2" />
-              View Results
-            </Button>
-            <Button
-              onClick={resetQuiz}
-              variant="outline"
-              className="hover-scale"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 
