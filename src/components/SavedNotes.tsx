@@ -62,6 +62,9 @@ const SavedNotes = () => {
     try {
       const prompt = `Generate exactly 5 multiple-choice questions from the following notes. Each question should have 4 options (A, B, C, D) with only one correct answer. 
 
+IMPORTANT: Use only these exact values for question_type: "factual", "conceptual", "application", "analytical"
+IMPORTANT: Use only these exact values for difficulty: "Easy", "Medium", "Hard"
+
 Format your response as a valid JSON array with this exact structure:
 [
   {
@@ -70,7 +73,7 @@ Format your response as a valid JSON array with this exact structure:
     "correct_answer": 0,
     "explanation": "Detailed explanation of why this is correct",
     "difficulty": "Easy",
-    "question_type": "Factual"
+    "question_type": "factual"
   }
 ]
 
@@ -78,6 +81,8 @@ Notes Title: ${note.title}
 Notes Content: ${note.content}
 
 Return ONLY the JSON array, no additional text or formatting.`;
+
+      console.log('Generating MCQs with Gemini API...');
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -104,11 +109,20 @@ Return ONLY the JSON array, no additional text or formatting.`;
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
         throw new Error(`Gemini API error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Gemini API response:', data);
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response format from Gemini API');
+      }
+      
       const mcqsText = data.candidates[0].content.parts[0].text;
+      console.log('Raw MCQs text:', mcqsText);
       
       // Clean the response to extract JSON
       let cleanedText = mcqsText.trim();
@@ -123,7 +137,7 @@ Return ONLY the JSON array, no additional text or formatting.`;
         mcqs = JSON.parse(cleanedText);
       } catch (parseError) {
         console.error('Failed to parse MCQs JSON:', parseError);
-        console.log('Raw response:', mcqsText);
+        console.log('Cleaned text:', cleanedText);
         throw new Error('Failed to parse generated MCQs');
       }
 
@@ -131,24 +145,44 @@ Return ONLY the JSON array, no additional text or formatting.`;
         throw new Error('Invalid MCQs format received');
       }
 
-      // Save MCQs to Supabase
-      const mcqsToSave = mcqs.map((mcq: any) => ({
-        user_id: user.id,
-        question: mcq.question,
-        options: mcq.options,
-        correct_answer: mcq.correct_answer,
-        explanation: mcq.explanation,
-        difficulty: mcq.difficulty || 'Medium',
-        question_type: mcq.question_type || 'Factual',
-        chapter: note.title,
-        original_text: note.content
-      }));
+      console.log('Parsed MCQs:', mcqs);
+
+      // Validate and clean MCQ data before saving
+      const validQuestionTypes = ['factual', 'conceptual', 'application', 'analytical'];
+      const validDifficulties = ['Easy', 'Medium', 'Hard'];
+
+      const mcqsToSave = mcqs.map((mcq: any) => {
+        let questionType = mcq.question_type || 'factual';
+        if (!validQuestionTypes.includes(questionType)) {
+          questionType = 'factual';
+        }
+
+        let difficulty = mcq.difficulty || 'Medium';
+        if (!validDifficulties.includes(difficulty)) {
+          difficulty = 'Medium';
+        }
+
+        return {
+          user_id: user.id,
+          question: mcq.question,
+          options: mcq.options,
+          correct_answer: mcq.correct_answer,
+          explanation: mcq.explanation,
+          difficulty: difficulty,
+          question_type: questionType,
+          chapter: note.title,
+          original_text: note.content
+        };
+      });
+
+      console.log('MCQs to save:', mcqsToSave);
 
       const { error: insertError } = await supabase
         .from('mcqs')
         .insert(mcqsToSave);
 
       if (insertError) {
+        console.error('Database insert error:', insertError);
         throw insertError;
       }
 
