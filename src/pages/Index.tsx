@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -74,6 +73,14 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => navigate('/mcq-practice')}
+                variant="outline"
+                className="flex items-center gap-2 hover-scale"
+              >
+                <Target className="w-4 h-4" />
+                Practice MCQs
+              </Button>
               <span className="text-base font-medium text-blue-900/80 hidden sm:inline-block">Welcome, {getNickname()}</span>
               <SettingsMenu onSignOut={signOut} />
             </div>
@@ -83,20 +90,13 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-8 animate-fade-in">
         <Tabs defaultValue="mcqs" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-blue-100 animate-scale-in rounded-xl overflow-hidden">
+          <TabsList className="grid w-full grid-cols-3 bg-white/60 backdrop-blur-sm border border-blue-100 animate-scale-in rounded-xl overflow-hidden">
             <TabsTrigger 
               value="mcqs" 
               className="flex items-center gap-2 data-[state=active]:bg-blue-50 transition-all duration-200"
             >
               <Brain className="w-4 h-4" />
               MCQ Generator
-            </TabsTrigger>
-            <TabsTrigger 
-              value="practice" 
-              className="flex items-center gap-2 data-[state=active]:bg-blue-50 transition-all duration-200"
-            >
-              <Target className="w-4 h-4" />
-              Practice MCQs
             </TabsTrigger>
             <TabsTrigger 
               value="notes-generator" 
@@ -118,9 +118,6 @@ const Index = () => {
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
               <MCQViewer key={refreshMCQs} />
             </div>
-          </TabsContent>
-          <TabsContent value="practice" className="animate-fade-in">
-            <MCQViewer key={refreshMCQs} />
           </TabsContent>
           <TabsContent value="notes-generator" className="animate-fade-in">
             <NotesGenerator />
