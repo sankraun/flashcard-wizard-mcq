@@ -487,11 +487,11 @@ const SavedNotes = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Saved Notes ({filteredNotes.length})
+    <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="border-b pb-4 mb-2 bg-white/80 sticky top-0 z-10">
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+          <FileText className="w-5 h-5 text-blue-600" />
+          Saved Notes <span className="text-gray-400 font-normal">({filteredNotes.length})</span>
         </CardTitle>
         <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
           <div className="relative w-full max-w-xs">
@@ -503,13 +503,13 @@ const SavedNotes = () => {
               placeholder="Search notes by title..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-10 pr-3 py-2 rounded-full border bg-white text-gray-900 border-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors shadow-sm outline-none"
+              className="pl-10 pr-3 py-2 rounded-full border bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors shadow-sm outline-none"
             />
           </div>
           <div className="flex items-center gap-1 ml-auto">
-            <Filter className="w-4 h-4 text-gray-500" />
+            <Filter className="w-4 h-4 text-gray-400" />
             <select
-              className="border rounded px-2 py-1 text-sm w-full max-w-xs bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+              className="border rounded px-2 py-1 text-sm w-full max-w-xs bg-gray-50 text-gray-900 border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
               value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             >
@@ -521,50 +521,69 @@ const SavedNotes = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {filteredNotes.map((note) => (
-          <div key={note.id} className="border rounded-lg p-4 flex items-center justify-between">
-            <div className="font-semibold text-lg truncate max-w-xs">{note.title}</div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => exportToPDF(note)} 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-1"
-              >
-                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                 PDF
-              </Button>
-              <Button 
-                onClick={() => exportToDoc(note)} 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-1"
-              >
-                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                 DOC
-              </Button>
-              <Button
-                onClick={() => openNoteInNewTab(note)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1"
-                title="Open note in new tab"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 3h7v7m0-7L10 14m-7 7h7v-7" /></svg>
-                Open
-              </Button>
-              <Button 
-                onClick={() => deleteNote(note.id)} 
-                variant="outline" 
-                size="sm"
-                className="text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+      <CardContent className="space-y-2 px-0">
+        {filteredNotes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <FileText className="w-12 h-12 mb-2" />
+            <div className="text-base font-medium">No notes found</div>
+            <div className="text-sm">Try a different search or date filter.</div>
           </div>
-        ))}
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {filteredNotes.map((note) => (
+              <li key={note.id} className="group flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                    <span className="font-medium text-gray-900 truncate max-w-xs group-hover:underline">{note.title}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1 ml-4">
+                  <Button 
+                    onClick={() => openNoteInNewTab(note)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-blue-50"
+                    title="Open note in new tab"
+                  >
+                    {/* Eye icon for view */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  </Button>
+                  <Button 
+                    onClick={() => exportToPDF(note)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-red-50"
+                    title="Export as PDF"
+                  >
+                    {/* Red down arrow for PDF */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4" /><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor" /></svg>
+                  </Button>
+                  <Button 
+                    onClick={() => exportToDoc(note)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-blue-50"
+                    title="Export as DOC"
+                  >
+                    {/* Blue down arrow for DOC */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4" /><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor" /></svg>
+                  </Button>
+                  <Button 
+                    onClick={() => deleteNote(note.id)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-red-50"
+                    title="Delete note"
+                  >
+                    {/* Delete: Trash (Lucide) icon */}
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );

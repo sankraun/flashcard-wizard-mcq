@@ -244,22 +244,22 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
   const isLongText = inputText.length > MAX_CHUNK_SIZE;
 
   return (
-    <Card className="animate-fade-in transition-all duration-300 hover:shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
+      <CardHeader className="border-b pb-4 mb-2 bg-white/80 sticky top-0 z-10">
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
           <Brain className="w-5 h-5 text-blue-600" />
           Generate MCQs
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="mode" className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
+            <Label htmlFor="mode" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Zap className="w-4 h-4 text-yellow-500" />
               Mode
             </Label>
             <Select value={mode} onValueChange={setMode}>
-              <SelectTrigger className="hover-scale transition-all duration-200">
+              <SelectTrigger className="rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -268,14 +268,13 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
               </SelectContent>
             </Select>
           </div>
-          
           <div className="space-y-2">
-            <Label htmlFor="difficulty" className="flex items-center gap-2">
-              <Brain className="w-4 h-4" />
+            <Label htmlFor="difficulty" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Brain className="w-4 h-4 text-blue-600" />
               Difficulty
             </Label>
             <Select value={difficulty} onValueChange={setDifficulty}>
-              <SelectTrigger className="hover-scale transition-all duration-200">
+              <SelectTrigger className="rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -287,10 +286,9 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
             </Select>
           </div>
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="chapter" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
+          <Label htmlFor="chapter" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <FileText className="w-4 h-4 text-blue-600" />
             Chapter/Topic (optional)
           </Label>
           <Input
@@ -298,66 +296,55 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
             value={chapter}
             onChange={(e) => setChapter(e.target.value)}
             placeholder="e.g., Cardiovascular System"
-            className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-gray-900"
           />
         </div>
-        
         <div className="space-y-3">
-          <Label htmlFor="input-text" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
+          <Label htmlFor="input-text" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <FileText className="w-4 h-4 text-blue-600" />
             Study Material
           </Label>
-          
-          {/* Text stats */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-gray-400">
             <span>{getWordCount()} words</span>
-            <span>{inputText.length} characters</span>
+            <span>{inputText.length} chars</span>
             {isLongText && (
-              <div className="flex items-center gap-1 text-orange-600">
+              <span className="flex items-center gap-1 text-orange-600">
                 <Scissors className="w-3 h-3" />
-                <span>Will be split into {getChunkCount()} parts</span>
-              </div>
+                {getChunkCount()} parts
+              </span>
             )}
           </div>
-
           {isLongText && (
-            <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg animate-fade-in">
+            <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5" />
-              <div className="text-sm">
-                <p className="text-orange-800 font-medium">Large text detected</p>
-                <p className="text-orange-700">
-                  Your text will be automatically divided into {getChunkCount()} parts for optimal processing.
-                </p>
+              <div className="text-xs text-orange-800 font-medium">
+                Large text detected. Your text will be split for optimal processing.
               </div>
             </div>
           )}
-          
           <Textarea
             id="input-text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Paste your study material here (lectures, textbook content, notes, etc.)..."
-            className="min-h-[200px] text-base leading-relaxed transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            placeholder="Paste your study material here..."
+            className="min-h-[160px] rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
           />
         </div>
-        
         <Button 
           onClick={generateMCQs} 
           disabled={isGenerating || !inputText.trim()}
           variant="default"
           size="lg"
-          className="w-full hover-scale mt-2"
+          className="w-full rounded-lg text-base font-semibold flex items-center justify-center gap-2 mt-2"
         >
           {isGenerating ? (
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{processingStep || 'Generating MCQs...'}</span>
-              </div>
-            </div>
+            <>
+              <svg className="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+              {processingStep || 'Generating MCQs...'}
+            </>
           ) : (
             <>
-              <Wand2 className="w-4 h-4 mr-2" />
+              <Wand2 className="w-5 h-5 text-blue-600" />
               Generate MCQs
             </>
           )}

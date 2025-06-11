@@ -325,69 +325,18 @@ const MCQViewer = () => {
   const scorePercentage = getScorePercentage();
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-scale-in">
-        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Progress</p>
-                <p className="text-2xl font-bold">{currentIndex + 1}/{mcqs.length}</p>
-              </div>
-              <BarChart className="w-8 h-8 text-blue-600" />
-            </div>
-            <Progress value={progress} className="mt-3" />
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Current Score</p>
-                <p className="text-2xl font-bold">{scorePercentage}%</p>
-              </div>
-              <Award className="w-8 h-8 text-green-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {correctCount} correct answers
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Created</p>
-                <p className="text-sm font-semibold">
-                  {new Date(currentMCQ.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="space-y-8">
       {/* Current MCQ */}
-      <Card className="animate-fade-in transition-all duration-300 hover:shadow-xl border-2 hover:border-blue-200 relative pb-24">
+      <Card className="shadow-none border-0 bg-white/90 rounded-xl transition-all duration-300 hover:shadow-xl border hover:border-blue-200 relative pb-24">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                <Badge className={`${getDifficultyColor(currentMCQ.difficulty)} animate-scale-in border`}>
-                  {currentMCQ.difficulty}
-                </Badge>
+                <Badge className={`${getDifficultyColor(currentMCQ.difficulty)} border`}>{currentMCQ.difficulty}</Badge>
                 {currentMCQ.chapter && (
-                  <Badge variant="outline" className="animate-scale-in">
-                    {currentMCQ.chapter}
-                  </Badge>
+                  <Badge variant="outline">{currentMCQ.chapter}</Badge>
                 )}
-                <Badge variant="secondary" className="animate-scale-in">
-                  Question {currentIndex + 1}
-                </Badge>
+                <Badge variant="secondary">Question {currentIndex + 1}</Badge>
               </div>
               <CardTitle className="text-lg leading-relaxed text-gray-900">
                 {currentMCQ.question}
@@ -395,15 +344,16 @@ const MCQViewer = () => {
             </div>
             <Button
               onClick={() => deleteMCQ(currentMCQ.id)}
-              variant="outline"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover-scale border-red-200 hover:border-red-300"
+              variant="ghost"
+              size="icon"
+              className="hover:bg-red-50"
               disabled={deleting === currentMCQ.id}
+              title="Delete MCQ"
             >
               {deleting === currentMCQ.id ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <svg className="w-5 h-5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
               ) : (
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-5 h-5 text-red-500" />
               )}
             </Button>
           </div>
@@ -414,61 +364,42 @@ const MCQViewer = () => {
               const isSelected = selectedAnswer === index;
               const isCorrect = index === currentMCQ.correct_answer;
               const showCorrectness = showAnswer && (isSelected || isCorrect);
-              
               return (
                 <Button
                   key={index}
                   onClick={() => handleAnswerSelect(index)}
                   variant={isSelected ? "default" : "outline"}
-                  className={`
-                    justify-start text-left h-auto py-4 px-5 transition-all duration-300 hover-scale
-                    ${showCorrectness ? (
-                      isCorrect ? 'bg-green-50 border-green-500 text-green-800' :
-                      isSelected ? 'bg-red-50 border-red-500 text-red-800' : ''
-                    ) : isSelected ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'}
-                    ${showAnswer ? 'pointer-events-none' : 'cursor-pointer'}
-                  `}
+                  className={`justify-start text-left h-auto py-4 px-5 transition-all duration-300 rounded-lg border text-base font-medium hover:bg-gray-50 ${showCorrectness ? (isCorrect ? 'bg-green-50 border-green-500 text-green-800' : isSelected ? 'bg-red-50 border-red-500 text-red-800' : '') : isSelected ? 'bg-blue-50 border-blue-500' : ''} ${showAnswer ? 'pointer-events-none' : 'cursor-pointer'}`}
                   disabled={showAnswer}
                 >
-                  <div className={`
-                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                    ${isSelected && !showAnswer ? 'bg-blue-600 text-white' : 
-                      showCorrectness && isCorrect ? 'bg-green-600 text-white' :
-                      showCorrectness && isSelected && !isCorrect ? 'bg-red-600 text-white' :
-                      'bg-gray-200 text-gray-600'}
-                    transition-all duration-200
-                  `}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isSelected && !showAnswer ? 'bg-blue-600 text-white' : showCorrectness && isCorrect ? 'bg-green-600 text-white' : showCorrectness && isSelected && !isCorrect ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-600'} transition-all duration-200`}>
                     {String.fromCharCode(65 + index)}
                   </div>
                   <span className="flex-1 text-base text-gray-900 break-words whitespace-pre-line max-w-full">{option}</span>
                   {showCorrectness && isCorrect && (
-                    <CheckCircle className="w-5 h-5 text-green-600 animate-scale-in" />
+                    <CheckCircle className="w-5 h-5 text-green-600" />
                   )}
                   {showCorrectness && isSelected && !isCorrect && (
-                    <XCircle className="w-5 h-5 text-red-600 animate-scale-in" />
+                    <XCircle className="w-5 h-5 text-red-600" />
                   )}
                 </Button>
               );
             })}
           </div>
-
           {showAnswer && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 animate-fade-in border border-blue-100">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
               <div className="flex items-start gap-3">
                 <BookOpen className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-blue-900 mb-2">Explanation:</h4>
-                  <p className="text-blue-800 leading-relaxed">
-                    {currentMCQ.explanation || <span className="text-gray-700">No explanation provided.</span>}
-                  </p>
+                  <p className="text-blue-800 leading-relaxed">{currentMCQ.explanation || <span className="text-gray-700">No explanation provided.</span>}</p>
                 </div>
               </div>
             </div>
           )}
-
         </CardContent>
         {/* Action bar absolutely positioned just below the MCQ card */}
-        <div className="absolute left-0 right-0 -bottom-6 z-40 flex justify-end bg-white/90 border-t border-blue-100 py-4 px-4 shadow-lg animate-fade-in rounded-b-xl">
+        <div className="absolute left-0 right-0 -bottom-6 z-40 flex justify-end bg-white/90 border-t border-blue-100 py-4 px-4 shadow-lg rounded-b-xl">
           <div className="w-full max-w-2xl flex gap-3 justify-end mx-auto">
             {!showAnswer ? (
               <Button 
@@ -476,8 +407,9 @@ const MCQViewer = () => {
                 disabled={selectedAnswer === null}
                 variant="default"
                 size="lg"
+                className="rounded-lg flex items-center gap-2"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
+                <CheckCircle className="w-5 h-5" />
                 Check Answer
               </Button>
             ) : (
@@ -485,17 +417,28 @@ const MCQViewer = () => {
                 <Button 
                   onClick={previousQuestion} 
                   disabled={currentIndex === 0}
-                  variant="default"
+                  variant="outline"
                   size="lg"
+                  className="rounded-lg flex items-center gap-2"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                   Previous
                 </Button>
                 <Button 
                   onClick={nextQuestion} 
                   variant="default"
                   size="lg"
+                  className="rounded-lg flex items-center gap-2"
                 >
-                  {currentIndex === mcqs.length - 1 ? 'Complete Practice' : 'Next Question'}
+                  {currentIndex === mcqs.length - 1 ? (
+                    <>
+                      <Award className="w-5 h-5" /> Complete Practice
+                    </>
+                  ) : (
+                    <>
+                      Next Question <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </>
+                  )}
                 </Button>
               </>
             )}

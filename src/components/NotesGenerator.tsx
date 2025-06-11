@@ -447,19 +447,19 @@ const NotesGenerator = () => {
   const isLongText = inputText.length > MAX_CHUNK_SIZE;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Input Section */}
-      <Card className="animate-fade-in transition-all duration-300 hover:shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
+        <CardHeader className="border-b pb-4 mb-2 bg-white/80 sticky top-0 z-10">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             <FileText className="w-5 h-5 text-blue-600" />
             Generate Structured Notes
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="note-title" className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
+            <Label htmlFor="note-title" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Zap className="w-4 h-4 text-yellow-500" />
               Note Title (optional)
             </Label>
             <Input
@@ -467,104 +467,92 @@ const NotesGenerator = () => {
               value={noteTitle}
               onChange={(e) => setNoteTitle(e.target.value)}
               placeholder="Enter a title for your notes"
-              className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-gray-900"
             />
           </div>
-          
           <div className="space-y-3">
-            <Label htmlFor="input-text" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+            <Label htmlFor="input-text" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <FileText className="w-4 h-4 text-blue-600" />
               Study Material
             </Label>
-            
-            {/* Text stats */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-xs text-gray-400">
               <span>{getWordCount()} words</span>
-              <span>{inputText.length} characters</span>
+              <span>{inputText.length} chars</span>
               {isLongText && (
-                <div className="flex items-center gap-1 text-orange-600">
+                <span className="flex items-center gap-1 text-orange-600">
                   <Scissors className="w-3 h-3" />
-                  <span>Will be split into {getChunkCount()} parts</span>
-                </div>
+                  {getChunkCount()} parts
+                </span>
               )}
             </div>
-
             {isLongText && (
-              <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg animate-fade-in">
+              <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="text-orange-800 font-medium">Large text detected</p>
-                  <p className="text-orange-700">
-                    Your text will be automatically divided into {getChunkCount()} parts for optimal processing.
-                  </p>
+                <div className="text-xs text-orange-800 font-medium">
+                  Large text detected. Your text will be split for optimal processing.
                 </div>
               </div>
             )}
-            
             <Textarea
               id="input-text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste your study material here (from PDFs, lectures, textbooks, etc.)..."
-              className="min-h-[200px] text-base leading-relaxed transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+              placeholder="Paste your study material here..."
+              className="min-h-[160px] rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
             />
           </div>
-          
           <Button 
             onClick={generateNotes} 
             disabled={isGenerating || !inputText.trim()}
             variant="default"
             size="lg"
-            className="w-full hover-scale"
+            className="w-full rounded-lg text-base font-semibold flex items-center justify-center gap-2"
           >
             {isGenerating ? (
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{processingStep || 'Generating Notes...'}</span>
-                </div>
-              </div>
+              <>
+                <svg className="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                Generating Notes...
+              </>
             ) : (
               <>
-                <FileText className="w-4 h-4 mr-2" />
+                <FileText className="w-5 h-5 text-blue-600" />
                 Generate Structured Notes
               </>
             )}
           </Button>
         </CardContent>
       </Card>
-
       {/* Generated Notes Section */}
       {generatedNotes && (
-        <Card className="animate-fade-in transition-all duration-300 hover:shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="shadow-none border-0 bg-gradient-to-br from-white to-blue-50">
+          <CardHeader className="border-b pb-4 mb-2 bg-white/80">
+            <CardTitle className="flex items-center justify-between text-lg font-semibold text-gray-900">
               <span className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-green-600" />
                 Generated Notes
               </span>
-              <div className="flex gap-2">
-                <Button onClick={exportToPDF} variant="outline" size="sm" className="hover-scale">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export PDF
+              <div className="flex gap-1">
+                <Button onClick={exportToPDF} variant="ghost" size="icon" className="hover:bg-red-50" title="Export PDF">
+                  {/* Red down arrow for PDF */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4" /><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor" /></svg>
                 </Button>
-                <Button onClick={openInGoogleDocs} variant="outline" size="sm" className="hover-scale">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Edit in Google Docs
+                <Button onClick={openInGoogleDocs} variant="ghost" size="icon" className="hover:bg-blue-50" title="Edit in Google Docs">
+                  {/* External link icon */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6m7-5v6m0 0L10 21m7-7H10" /></svg>
                 </Button>
                 <Button 
                   onClick={saveNotes} 
                   disabled={isSaving || !user}
-                  size="sm"
-                  className="hover-scale"
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-green-50"
+                  title="Save Notes"
                 >
+                  {/* Save/Check icon */}
                   {isSaving ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
+                    <svg className="w-5 h-5 animate-spin text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
                   ) : (
-                    'Save Notes'
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                   )}
                 </Button>
               </div>
