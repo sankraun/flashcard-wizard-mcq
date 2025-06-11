@@ -326,44 +326,6 @@ const MCQViewer = () => {
 
   return (
     <div className="space-y-8">
-      {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Progress</p>
-                <p className="text-2xl font-bold text-gray-900">{currentIndex + 1}/{mcqs.length}</p>
-              </div>
-              <BarChart className="w-7 h-7 text-blue-600" />
-            </div>
-            <Progress value={progress} className="mt-3" />
-          </CardContent>
-        </Card>
-        <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Current Score</p>
-                <p className="text-2xl font-bold text-gray-900">{scorePercentage}%</p>
-              </div>
-              <Award className="w-7 h-7 text-green-600" />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{correctCount} correct answers</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Created</p>
-                <p className="text-sm font-semibold text-gray-900">{new Date(currentMCQ.created_at).toLocaleDateString()}</p>
-              </div>
-              <Calendar className="w-7 h-7 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
       {/* Current MCQ */}
       <Card className="shadow-none border-0 bg-white/90 rounded-xl transition-all duration-300 hover:shadow-xl border hover:border-blue-200 relative pb-24">
         <CardHeader>
