@@ -21,6 +21,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 interface MCQ {
   id: string;
@@ -37,6 +38,7 @@ interface Answer {
   questionId: string;
   selectedAnswer: number;
   isCorrect: boolean;
+  timeSpent: number; // Time spent on this question in milliseconds
 }
 
 const MCQPractice = () => {
@@ -56,6 +58,8 @@ const MCQPractice = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { updateAnalyticsFromPractice } = useAnalytics();
+  const [questionStartTime, setQuestionStartTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -66,6 +70,24 @@ const MCQPractice = () => {
   useEffect(() => {
     filterMCQs();
   }, [mcqs, practiceMode, selectedDifficulty, selectedChapter]);
+
+  // Call analytics update when sessionCompleted becomes true
+  useEffect(() => {
+    if (sessionCompleted && answers.length > 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      const results = answers.map(ans => {
+        const mcq = mcqs.find(m => m.id === ans.questionId);
+        return {
+          question: mcq?.question || '',
+          chapter: mcq?.chapter || '',
+          correct: ans.isCorrect,
+          date: today,
+          timeSpent: ans.timeSpent // Use per-question time spent
+        };
+      });
+      updateAnalyticsFromPractice(results);
+    }
+  }, [sessionCompleted]);
 
   const loadMCQs = async () => {
     try {
@@ -135,10 +157,14 @@ const MCQPractice = () => {
     setShowResult(false);
     setSessionCompleted(false);
     setStartTime(new Date());
+    setQuestionStartTime(new Date()); // Start timing the first question
   };
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (sessionCompleted) return;
+    if (questionStartTime === null) {
+      setQuestionStartTime(new Date());
+    }
     setSelectedAnswer(answerIndex);
   };
 
@@ -152,13 +178,17 @@ const MCQPractice = () => {
       return;
     }
 
+    if (!questionStartTime) return;
+
     const currentMCQ = filteredMcqs[currentQuestionIndex];
     const isCorrect = selectedAnswer === currentMCQ.correct_answer;
+    const timeSpent = new Date().getTime() - questionStartTime.getTime();
     
     const newAnswer: Answer = {
       questionId: currentMCQ.id,
       selectedAnswer,
-      isCorrect
+      isCorrect,
+      timeSpent
     };
 
     setAnswers(prev => [...prev, newAnswer]);
@@ -170,6 +200,7 @@ const MCQPractice = () => {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      setQuestionStartTime(new Date()); // Start timing the next question
     } else {
       // Session completed
       setSessionCompleted(true);
