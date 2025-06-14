@@ -764,7 +764,7 @@ const EnhancedMCQPractice = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-lg leading-relaxed">
+                <div className="text-lg leading-relaxed break-words whitespace-pre-wrap">
                   {filteredMcqs[currentSession.currentIndex].question}
                 </div>
 
@@ -783,16 +783,16 @@ const EnhancedMCQPractice = () => {
                       }`}
                       disabled={showResult}
                     >
-                      <div className="flex items-center gap-3 w-full">
-                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                      <div className="flex items-start gap-3 w-full">
+                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">
                           {String.fromCharCode(65 + index)}
                         </span>
-                        <span className="flex-1">{option}</span>
+                        <span className="flex-1 break-words whitespace-pre-wrap text-left">{option}</span>
                         {showResult && index === filteredMcqs[currentSession.currentIndex].correct_answer && (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                         )}
                         {showResult && selectedAnswer === index && index !== filteredMcqs[currentSession.currentIndex].correct_answer && (
-                          <XCircle className="w-5 h-5 text-red-600" />
+                          <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                         )}
                       </div>
                     </Button>
@@ -824,7 +824,7 @@ const EnhancedMCQPractice = () => {
                       <BookOpen className="w-4 h-4" />
                       Explanation:
                     </h4>
-                    <p className="text-sm leading-relaxed">
+                    <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
                       {filteredMcqs[currentSession.currentIndex].explanation}
                     </p>
                   </div>
