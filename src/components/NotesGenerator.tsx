@@ -85,7 +85,24 @@ This is a summary of the provided content, organized into clear, actionable note
 
     setGeneratingFlashcards(true);
     try {
-      console.log('Starting flashcard generation for user:', user.id);
+      console.log('=== FLASHCARD GENERATION DEBUG ===');
+      console.log('User object:', user);
+      console.log('User ID:', user.id);
+      console.log('User email:', user.email);
+      
+      // Check current session
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', session);
+      console.log('Session error:', sessionError);
+      
+      // Test database connection with a simple query
+      const { data: testQuery, error: testError } = await supabase
+        .from('flashcards')
+        .select('count')
+        .eq('user_id', user.id);
+      
+      console.log('Test query result:', testQuery);
+      console.log('Test query error:', testError);
       
       // Mock AI flashcard generation - create multiple flashcards from notes
       const mockFlashcards = [
@@ -117,38 +134,78 @@ This is a summary of the provided content, organized into clear, actionable note
         user_id: user.id
       }));
 
-      console.log('Inserting flashcards with user_id:', user.id);
       console.log('Flashcards to insert:', flashcardsToInsert);
 
-      // Insert flashcards one by one to better handle errors
-      const insertedFlashcards = [];
-      for (const flashcard of flashcardsToInsert) {
-        console.log('Inserting flashcard:', flashcard);
+      // Try inserting all at once first
+      console.log('Attempting bulk insert...');
+      const { data: bulkData, error: bulkError } = await supabase
+        .from('flashcards')
+        .insert(flashcardsToInsert)
+        .select();
+
+      if (bulkError) {
+        console.error('Bulk insert failed:', bulkError);
+        console.log('Attempting individual inserts...');
         
-        const { data, error } = await supabase
-          .from('flashcards')
-          .insert([flashcard])
-          .select();
+        // Insert flashcards one by one to better handle errors
+        const insertedFlashcards = [];
+        for (let i = 0; i < flashcardsToInsert.length; i++) {
+          const flashcard = flashcardsToInsert[i];
+          console.log(`Inserting flashcard ${i + 1}:`, flashcard);
+          
+          const { data, error } = await supabase
+            .from('flashcards')
+            .insert([flashcard])
+            .select();
 
-        if (error) {
-          console.error('Error inserting flashcard:', error);
-          throw error;
+          console.log(`Insert result for flashcard ${i + 1}:`, { data, error });
+
+          if (error) {
+            console.error(`Error inserting flashcard ${i + 1}:`, error);
+            console.error('Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            throw error;
+          }
+
+          if (data && data.length > 0) {
+            insertedFlashcards.push(data[0]);
+            console.log(`Successfully inserted flashcard ${i + 1}:`, data[0]);
+          }
         }
 
-        console.log('Successfully inserted flashcard:', data);
-        if (data && data.length > 0) {
-          insertedFlashcards.push(data[0]);
-        }
+        console.log('All flashcards inserted successfully:', insertedFlashcards);
+        
+        toast({
+          title: "Success",
+          description: `Generated and saved ${insertedFlashcards.length} flashcards!`
+        });
+      } else {
+        console.log('Bulk insert successful:', bulkData);
+        toast({
+          title: "Success",
+          description: `Generated and saved ${bulkData.length} flashcards!`
+        });
       }
 
-      console.log('All flashcards inserted successfully:', insertedFlashcards);
+      // Verify the data was actually inserted by querying back
+      console.log('Verifying inserted data...');
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('flashcards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
       
-      toast({
-        title: "Success",
-        description: `Generated and saved ${insertedFlashcards.length} flashcards!`
-      });
+      console.log('Verification query result:', verifyData);
+      console.log('Verification query error:', verifyError);
+      
     } catch (error) {
       console.error('Error generating flashcards:', error);
+      console.error('Error stack:', error.stack);
       toast({
         title: "Error",
         description: `Failed to generate flashcards: ${error.message}`,
