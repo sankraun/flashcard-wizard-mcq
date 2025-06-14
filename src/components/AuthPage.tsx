@@ -116,8 +116,58 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Left Panel - Authentication */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
+      {/* Left Panel - Features */}
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 items-center justify-center p-12">
+        <div className="max-w-lg">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Transform Your Learning Experience
+            </h2>
+            <p className="text-lg text-gray-600">
+              Join over 10,000+ students who are studying smarter with AI-powered tools
+            </p>
+          </div>
+
+          {/* Key Benefits */}
+          <div className="mb-10">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Why students choose Neutron AI:</h3>
+            <div className="space-y-3">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-gray-700">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid grid-cols-2 gap-6">
+            {features.map((feature, index) => (
+              <div key={index} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center mb-3">
+                  <feature.icon className="w-5 h-5 text-white" />
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
+                <p className="text-sm text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Call to Action */}
+          <div className="text-center mt-10">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to get started?</h3>
+              <p className="text-gray-600 text-sm">
+                Create your free account today and revolutionize the way you study
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Authentication */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 min-h-screen">
         <div className="w-full max-w-md">
           {/* Brand Header */}
           <div className="text-center mb-8">
@@ -272,56 +322,6 @@ const AuthPage = () => {
             <p className="text-xs text-gray-500">
               By continuing, you agree to our Terms of Service and Privacy Policy
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Features */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 items-center justify-center p-12">
-        <div className="max-w-lg">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Transform Your Learning Experience
-            </h2>
-            <p className="text-lg text-gray-600">
-              Join over 10,000+ students who are studying smarter with AI-powered tools
-            </p>
-          </div>
-
-          {/* Key Benefits */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Why students choose Neutron AI:</h3>
-            <div className="space-y-3">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                  <span className="text-gray-700">{benefit}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid grid-cols-2 gap-6">
-            {features.map((feature, index) => (
-              <div key={index} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center mb-3">
-                  <feature.icon className="w-5 h-5 text-white" />
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
-                <p className="text-sm text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Call to Action */}
-          <div className="text-center mt-10">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to get started?</h3>
-              <p className="text-gray-600 text-sm">
-                Create your free account today and revolutionize the way you study
-              </p>
-            </div>
           </div>
         </div>
       </div>
