@@ -29,7 +29,8 @@ import {
   Calendar,
   Timer,
   Settings,
-  CheckSquare
+  CheckSquare,
+  X
 } from 'lucide-react';
 
 interface MCQ {
@@ -270,6 +271,39 @@ const EnhancedMCQPractice = () => {
     }
   };
 
+  const cancelSession = () => {
+    if (currentSession) {
+      // Remove session from saved sessions
+      try {
+        const saved = localStorage.getItem(`mcq_sessions_${user?.id}`);
+        if (saved) {
+          const sessions = JSON.parse(saved);
+          const filteredSessions = sessions.filter((s: PracticeSession) => s.id !== currentSession.id);
+          localStorage.setItem(`mcq_sessions_${user?.id}`, JSON.stringify(filteredSessions));
+        }
+      } catch (error) {
+        console.error('Error removing session:', error);
+      }
+
+      // Reset current session state
+      setCurrentSession(null);
+      setSelectedAnswer(null);
+      setShowResult(false);
+      setSessionTime(0);
+      setIsPaused(false);
+      setQuestionStartTime(null);
+      setConfidence(null);
+      
+      // Reload saved sessions to update the UI
+      loadSavedSessions();
+      
+      toast({
+        title: "Session Cancelled",
+        description: "Your practice session has been cancelled and progress discarded."
+      });
+    }
+  };
+
   const handleAnswerSelect = (answerIndex: number) => {
     if (showResult) return;
     if (!questionStartTime) setQuestionStartTime(new Date());
@@ -450,15 +484,26 @@ const EnhancedMCQPractice = () => {
                 <Timer className="w-4 h-4" />
                 {formatTime(sessionTime)}
               </div>
-              <Button
-                onClick={pauseSession}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Pause className="w-4 h-4" />
-                Pause
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={pauseSession}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Pause className="w-4 h-4" />
+                  Pause
+                </Button>
+                <Button
+                  onClick={cancelSession}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </div>
