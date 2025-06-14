@@ -14,6 +14,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('signin');
   const { signIn, signUp } = useAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -93,7 +94,7 @@ const AuthPage = () => {
         {/* Auth Card */}
         <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs defaultValue="signin" value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100">
                 <TabsTrigger value="signin" className="text-sm font-medium">
                   Sign In
@@ -120,7 +121,7 @@ const AuthPage = () => {
           </CardHeader>
           
           <CardContent className="pt-0">
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
