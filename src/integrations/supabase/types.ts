@@ -160,6 +160,39 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcards: {
+        Row: {
+          back: string
+          category: string | null
+          created_at: string
+          front: string
+          id: string
+          original_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back: string
+          category?: string | null
+          created_at?: string
+          front: string
+          id?: string
+          original_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back?: string
+          category?: string | null
+          created_at?: string
+          front?: string
+          id?: string
+          original_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard_entries: {
         Row: {
           accuracy_percentage: number
