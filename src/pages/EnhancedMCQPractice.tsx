@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,6 +77,7 @@ const EnhancedMCQPractice = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [savedSessions, setSavedSessions] = useState<PracticeSession[]>([]);
+  const [deletingChapter, setDeletingChapter] = useState<string | null>(null);
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -365,6 +365,42 @@ const EnhancedMCQPractice = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const deleteChapter = async (chapterName: string) => {
+    setDeletingChapter(chapterName);
+    try {
+      const { error } = await supabase
+        .from('mcqs')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('chapter', chapterName);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedMcqs = mcqs.filter(mcq => mcq.chapter !== chapterName);
+      setMcqs(updatedMcqs);
+
+      // If the deleted chapter was selected, reset the selection
+      if (selectedChapter === chapterName) {
+        setSelectedChapter('');
+      }
+
+      toast({
+        title: "Chapter Deleted",
+        description: `All MCQs from "${chapterName}" have been deleted`,
+      });
+    } catch (error) {
+      console.error('Error deleting chapter:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chapter",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingChapter(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
@@ -608,17 +644,38 @@ const EnhancedMCQPractice = () => {
 
                     {practiceMode === 'by-chapter' && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Select Chapter:</label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Select Chapter:</label>
+                          <div className="text-xs text-muted-foreground">
+                            Click the trash icon to delete a chapter
+                          </div>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {uniqueChapters.map(chapter => (
-                            <Button
-                              key={chapter}
-                              onClick={() => setSelectedChapter(chapter)}
-                              variant={selectedChapter === chapter ? 'default' : 'outline'}
-                              size="sm"
-                            >
-                              {chapter}
-                            </Button>
+                            <div key={chapter} className="flex items-center gap-1">
+                              <Button
+                                onClick={() => setSelectedChapter(chapter)}
+                                variant={selectedChapter === chapter ? 'default' : 'outline'}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                {chapter}
+                              </Button>
+                              <Button
+                                onClick={() => deleteChapter(chapter)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                                disabled={deletingChapter === chapter}
+                                title={`Delete ${chapter} chapter`}
+                              >
+                                {deletingChapter === chapter ? (
+                                  <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
                           ))}
                         </div>
                       </div>
