@@ -16,6 +16,7 @@ const NotesGenerator = () => {
   const [generatedNotes, setGeneratedNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [processingStep, setProcessingStep] = useState('');
   const { user } = useAuth();
   const [apiKey] = useState('AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y');
@@ -264,6 +265,127 @@ const NotesGenerator = () => {
     } finally {
       setIsGenerating(false);
       setProcessingStep('');
+    }
+  };
+
+  const generateFlashcardsFromNotes = async () => {
+    if (!generatedNotes.trim()) {
+      toast({
+        title: "Error",
+        description: "Please generate notes first before creating flashcards",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save flashcards",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingFlashcards(true);
+    
+    try {
+      const prompt = `
+        Create flashcards from the following notes. Generate 8-12 flashcards that cover the key concepts.
+        
+        Format your response as a JSON array where each flashcard has:
+        - "front": The question or prompt
+        - "back": The answer or explanation
+        
+        Make sure the flashcards:
+        - Cover important concepts from the notes
+        - Have clear, concise questions
+        - Have comprehensive but not too long answers
+        - Are varied in difficulty
+        
+        Notes: ${generatedNotes}
+        
+        Return ONLY the JSON array, no additional text.
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const flashcardsText = data.candidates[0].content.parts[0].text;
+      
+      // Parse the JSON response
+      let flashcardsData;
+      try {
+        // Clean the response to extract JSON
+        const cleanedText = flashcardsText.replace(/```json\n?|\n?```/g, '').trim();
+        flashcardsData = JSON.parse(cleanedText);
+      } catch (parseError) {
+        console.error('Failed to parse flashcards JSON:', parseError);
+        throw new Error('Failed to parse generated flashcards');
+      }
+
+      if (!Array.isArray(flashcardsData)) {
+        throw new Error('Invalid flashcards format received');
+      }
+
+      // Save flashcards to database
+      const flashcardsToSave = flashcardsData.map((card: any) => ({
+        user_id: user.id,
+        front: card.front,
+        back: card.back,
+        category: noteTitle || 'Generated from Notes',
+        original_text: inputText
+      }));
+
+      const { error } = await supabase
+        .from('flashcards')
+        .insert(flashcardsToSave);
+
+      if (error) {
+        console.error('Error saving flashcards:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Success!",
+        description: `Generated and saved ${flashcardsData.length} flashcards`,
+      });
+
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate flashcards. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingFlashcards(false);
     }
   };
 
@@ -539,6 +661,20 @@ const NotesGenerator = () => {
                 <Button onClick={openInGoogleDocs} variant="ghost" size="icon" className="hover:bg-blue-50" title="Edit in Google Docs">
                   {/* External link icon */}
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6m7-5v6m0 0L10 21m7-7H10" /></svg>
+                </Button>
+                <Button 
+                  onClick={generateFlashcardsFromNotes} 
+                  disabled={isGeneratingFlashcards || !user}
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-orange-50"
+                  title="Generate Flashcards"
+                >
+                  {isGeneratingFlashcards ? (
+                    <svg className="w-5 h-5 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                  ) : (
+                    <Zap className="w-5 h-5 text-orange-600" />
+                  )}
                 </Button>
                 <Button 
                   onClick={saveNotes} 
