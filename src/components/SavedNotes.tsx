@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Trash2, Calendar, Filter } from 'lucide-react';
+import { FileText, Trash2, Calendar, Filter, Brain, Zap } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 interface Note {
@@ -21,7 +21,9 @@ const SavedNotes = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("All");
+  const [generatingContent, setGeneratingContent] = useState<{ [key: string]: 'mcq' | 'flashcard' | null }>({});
   const { user } = useAuth();
+  const apiKey = 'AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y';
 
   useEffect(() => {
     if (user) {
@@ -75,7 +77,192 @@ const SavedNotes = () => {
     }
   };
 
-  // Function to format notes for display with proper HTML and custom styles
+  const generateMCQsFromNote = async (note: Note) => {
+    setGeneratingContent(prev => ({ ...prev, [note.id]: 'mcq' }));
+    
+    try {
+      const prompt = `
+        Generate 5 high-quality multiple choice questions from the following notes.
+        
+        Notes: ${note.content}
+        
+        Return a JSON array with this exact structure:
+        [
+          {
+            "question": "Question text here",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correctAnswer": 0,
+            "explanation": "Detailed explanation of why this is correct",
+            "difficulty": "Medium"
+          }
+        ]
+        
+        Make sure questions are:
+        - Clear and unambiguous
+        - Based directly on the provided notes
+        - Have plausible distractors
+        - Include comprehensive explanations
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in response');
+      }
+
+      const generatedMCQs = JSON.parse(jsonMatch[0]);
+
+      // Save MCQs to Supabase
+      const mcqsForDB = generatedMCQs.map((mcq: any) => ({
+        user_id: user!.id,
+        question: mcq.question,
+        options: mcq.options,
+        correct_answer: mcq.correctAnswer,
+        explanation: mcq.explanation,
+        difficulty: mcq.difficulty,
+        question_type: 'single',
+        chapter: note.title,
+        original_text: note.content
+      }));
+
+      const { error } = await supabase
+        .from('mcqs')
+        .insert(mcqsForDB);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: `Generated ${generatedMCQs.length} MCQs from "${note.title}"`,
+      });
+
+    } catch (error) {
+      console.error('Error generating MCQs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate MCQs. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingContent(prev => ({ ...prev, [note.id]: null }));
+    }
+  };
+
+  const generateFlashcardsFromNote = async (note: Note) => {
+    setGeneratingContent(prev => ({ ...prev, [note.id]: 'flashcard' }));
+    
+    try {
+      const prompt = `
+        Generate 8-10 flashcards from the following notes. Create question-answer pairs that help with memorization and understanding.
+        
+        Notes: ${note.content}
+        
+        Return a JSON array with this exact structure:
+        [
+          {
+            "front": "Question or term",
+            "back": "Answer or definition",
+            "category": "topic category"
+          }
+        ]
+        
+        Make flashcards that:
+        - Cover key concepts and terms
+        - Have clear, concise questions
+        - Provide complete but brief answers
+        - Are useful for memorization and review
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in response');
+      }
+
+      const generatedFlashcards = JSON.parse(jsonMatch[0]);
+
+      // For now, we'll just show the flashcards in a toast. 
+      // In a real app, you'd want to save them to a flashcards table
+      toast({
+        title: "Flashcards Generated!",
+        description: `Generated ${generatedFlashcards.length} flashcards from "${note.title}". Check console for details.`,
+      });
+
+      // Log flashcards to console for now
+      console.log('Generated flashcards:', generatedFlashcards);
+
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate flashcards. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingContent(prev => ({ ...prev, [note.id]: null }));
+    }
+  };
+
   const formatNotesForDisplay = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>') // Highlight key points (bold)
@@ -88,7 +275,6 @@ const SavedNotes = () => {
       .replace(/\n/g, '<br/>'); // Line breaks
   };
 
-  // Function to clean markdown for plain text (PDF and Google Docs)
   const cleanMarkdownForExport = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers but keep text
@@ -102,7 +288,7 @@ const SavedNotes = () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 40;
-    const lineHeight = 12; // very small font and tight spacing
+    const lineHeight = 12;
     let yPosition = margin;
     let pageNumber = 1;
     const addPageNumber = () => {
@@ -112,172 +298,25 @@ const SavedNotes = () => {
       pdf.setTextColor(0, 0, 0);
     };
 
-    // Title (H1)
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(10, 30, 80);
     pdf.text(note.title, margin, yPosition);
     yPosition += lineHeight * 2;
 
-    // Creation date
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(120, 120, 120);
     pdf.text(`Created: ${new Date(note.created_at).toLocaleDateString()}`, margin, yPosition);
     yPosition += lineHeight * 1.5;
 
-    // Divider
     pdf.setDrawColor(200, 200, 200);
     pdf.setLineWidth(0.5);
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += lineHeight * 0.7;
 
-    // Content
     const lines = note.content.split('\n');
-    let inBulletList = false;
-    let inTable = false;
-    let tableRows = [];
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
-      // Table row (markdown style: | col1 | col2 | ... |)
-      if (/^\s*\|(.+)\|\s*$/.test(line)) {
-        const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
-        tableRows.push(cells);
-        inTable = true;
-        // If next line is not a table, render the table
-        if (i + 1 >= lines.length || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
-          // Draw table
-          const colCount = tableRows[0].length;
-          const colWidth = (pageWidth - margin * 2) / colCount;
-          let tableY = yPosition;
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(10);
-          pdf.setTextColor(0, 0, 0);
-          // Header row
-          tableRows.forEach((row, rowIdx) => {
-            let x = margin;
-            row.forEach((cell, colIdx) => {
-              pdf.rect(x, tableY - 8, colWidth, lineHeight + 4);
-              pdf.text(String(cell), x + 2, tableY);
-              x += colWidth;
-            });
-            tableY += lineHeight * 1.2;
-            if (tableY > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; tableY = margin; }
-          });
-          yPosition = tableY + lineHeight * 0.5;
-          tableRows = [];
-          inTable = false;
-        }
-        continue;
-      } else if (inTable) {
-        // End of table
-        tableRows = [];
-        inTable = false;
-        yPosition += lineHeight * 0.5;
-      }
-      // H1
-      if (/^# (.*)/.test(line)) {
-        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(14);
-        pdf.setTextColor(10, 30, 80);
-        const h1Text = line.replace(/^# /, '');
-        const splitLines = pdf.splitTextToSize(h1Text, pageWidth - margin * 2);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin, yPosition);
-          yPosition += lineHeight * 2;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        yPosition += lineHeight * 0.5;
-        continue;
-      }
-      // H2
-      if (/^## (.*)/.test(line)) {
-        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12);
-        pdf.setTextColor(34, 139, 34);
-        const h2Text = line.replace(/^## /, '');
-        const splitLines = pdf.splitTextToSize(h2Text, pageWidth - margin * 2 - 10);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin + 10, yPosition);
-          yPosition += lineHeight * 1.5;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        yPosition += lineHeight * 0.5;
-        continue;
-      }
-      // H3
-      if (/^### (.*)/.test(line)) {
-        if (inBulletList) { inBulletList = false; yPosition += lineHeight * 0.5; }
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(11);
-        pdf.setTextColor(219, 39, 119);
-        const h3Text = line.replace(/^### /, '');
-        const splitLines = pdf.splitTextToSize(h3Text, pageWidth - margin * 2 - 20);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin + 20, yPosition);
-          yPosition += lineHeight * 1.2;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        yPosition += lineHeight * 0.3;
-        continue;
-      }
-      // Bullet points (convert * and - to bullets)
-      if (/^(- |\* )(.+)/.test(line)) {
-        if (!inBulletList) { inBulletList = true; yPosition += lineHeight * 0.3; }
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFillColor(255, 249, 196);
-        pdf.rect(margin + 20, yPosition - 9, pageWidth - margin * 2 - 20, lineHeight + 2, 'F');
-        let bulletText = line.replace(/^(- |\* )/, '\u2022 ');
-        bulletText = bulletText.replace(/\*\*(.*?)\*\*/g, '$1');
-        bulletText = bulletText.replace(/\*(.*?)\*/g, '$1');
-        const splitLines = pdf.splitTextToSize(bulletText, pageWidth - margin * 2 - 25);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin + 25, yPosition);
-          yPosition += lineHeight * 1.15;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        continue;
-      } else if (inBulletList) {
-        inBulletList = false;
-        yPosition += lineHeight * 0.5;
-      }
-      // Key points (bold)
-      if (/\*\*(.*?)\*\*/.test(line)) {
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFillColor(255, 249, 196);
-        pdf.rect(margin, yPosition - 9, pageWidth - margin * 2, lineHeight + 2, 'F');
-        const boldText = line.replace(/\*\*(.*?)\*\*/g, '$1');
-        const splitLines = pdf.splitTextToSize(boldText, pageWidth - margin * 2);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin, yPosition);
-          yPosition += lineHeight * 1.15;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        yPosition += lineHeight * 0.2;
-        continue;
-      }
-      // Italic (render as normal text, no asterisks)
-      if (/\*(.*?)\*/.test(line)) {
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(10);
-        pdf.setTextColor(60, 60, 60);
-        const italicText = line.replace(/\*(.*?)\*/g, '$1');
-        const splitLines = pdf.splitTextToSize(italicText, pageWidth - margin * 2);
-        for (const splitLine of splitLines) {
-          pdf.text(splitLine, margin, yPosition);
-          yPosition += lineHeight * 1.1;
-          if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
-        }
-        yPosition += lineHeight * 0.1;
-        continue;
-      }
-      // Normal text
+    for (let line of lines) {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.setTextColor(60, 60, 60);
@@ -285,9 +324,13 @@ const SavedNotes = () => {
       for (const splitLine of splitLines) {
         pdf.text(splitLine, margin, yPosition);
         yPosition += lineHeight * 1.2;
-        if (yPosition > pageHeight - margin) { addPageNumber(); pdf.addPage(); pageNumber++; yPosition = margin; }
+        if (yPosition > pageHeight - margin) { 
+          addPageNumber(); 
+          pdf.addPage(); 
+          pageNumber++; 
+          yPosition = margin; 
+        }
       }
-      yPosition += lineHeight * 0.2;
     }
     addPageNumber();
     pdf.save(`${note.title.replace(/[^\w\s]/gi, '')}.pdf`);
@@ -298,87 +341,13 @@ const SavedNotes = () => {
   };
 
   const exportToDoc = (note: Note) => {
-    // Use the same structure and formatting as PDF export
     let htmlContent = `<html><head><meta charset='utf-8'><title>${note.title}</title></head><body style="font-family:Calibri,Arial,sans-serif;">
       <h1 style="color:#0a1e50;font-size:1.5rem;margin-bottom:0.5em;">${note.title}</h1>
       <div style="color:#888;font-size:0.8rem;margin-bottom:0.5em;">Created: ${new Date(note.created_at).toLocaleDateString()}</div>
       <hr style="border:1px solid #ccc; margin:12px 0;"/>
-    `;
-    const lines = note.content.split('\n');
-    let inList = false;
-    let inTable = false;
-    let tableRows = [];
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
-      // Table row (markdown style: | col1 | col2 | ... |)
-      if (/^\s*\|(.+)\|\s*$/.test(line)) {
-        const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
-        tableRows.push(cells);
-        inTable = true;
-        if ((i + 1 >= lines.length) || !/^\s*\|(.+)\|\s*$/.test(lines[i + 1])) {
-          // Render table
-          htmlContent += '<table style="border-collapse:collapse;width:100%;margin-bottom:1em;">';
-          tableRows.forEach((row, rowIdx) => {
-            htmlContent += '<tr>';
-            row.forEach(cell => {
-              htmlContent += `<td style="border:1px solid #bbb;padding:6px 8px;font-size:1rem;${rowIdx===0?'font-weight:bold;background:#f5f5f5;':''}">${cell}</td>`;
-            });
-            htmlContent += '</tr>';
-          });
-          htmlContent += '</table>';
-          tableRows = [];
-          inTable = false;
-        }
-        continue;
-      } else if (inTable) {
-        tableRows = [];
-        inTable = false;
-      }
-      // H1
-      if (/^# (.*)/.test(line)) {
-        if (inList) { htmlContent += '</ul>'; inList = false; }
-        htmlContent += `<h2 style="color:#0a1e50;font-size:1.2rem;margin-top:1.5em;margin-bottom:0.5em;">${line.replace(/^# /, '')}</h2>`;
-        continue;
-      }
-      // H2
-      if (/^## (.*)/.test(line)) {
-        if (inList) { htmlContent += '</ul>'; inList = false; }
-        htmlContent += `<h3 style="color:#228b22;font-size:1.1rem;margin-top:1.2em;margin-bottom:0.4em;">${line.replace(/^## /, '')}</h3>`;
-        continue;
-      }
-      // H3
-      if (/^### (.*)/.test(line)) {
-        if (inList) { htmlContent += '</ul>'; inList = false; }
-        htmlContent += `<h4 style="color:#db2777;font-size:1rem;margin-top:1em;margin-bottom:0.3em;">${line.replace(/^### /, '')}</h4>`;
-        continue;
-      }
-      // Bullet points (convert * and - to bullets)
-      if (/^(- |\* )(.+)/.test(line)) {
-        if (!inList) { htmlContent += '<ul style="margin-bottom:0.5em;">'; inList = true; }
-        let bulletText = line.replace(/^(- |\* )/, '');
-        bulletText = bulletText.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight:bold;background:#fff9c4;">$1</span>');
-        bulletText = bulletText.replace(/\*(.*?)\*/g, '<span style="font-style:italic;">$1</span>');
-        htmlContent += `<li style="margin-bottom:0.2em;font-size:1rem;">${bulletText}</li>`;
-        continue;
-      } else if (inList) {
-        htmlContent += '</ul>';
-        inList = false;
-      }
-      // Key points (bold)
-      if (/\*\*(.*?)\*\*/.test(line)) {
-        htmlContent += `<div style="font-weight:bold;background:#fff9c4;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:0.2em;">${line.replace(/\*\*(.*?)\*\*/g, '$1')}</div><br/>`;
-        continue;
-      }
-      // Italic (render as normal text, no asterisks)
-      if (/\*(.*?)\*/.test(line)) {
-        htmlContent += `<span style="font-style:italic;">${line.replace(/\*(.*?)\*/g, '$1')}</span><br/>`;
-        continue;
-      }
-      // Normal text
-      htmlContent += `<div style="font-size:1rem;margin-bottom:0.3em;">${line}</div>`;
-    }
-    if (inList) htmlContent += '</ul>';
-    htmlContent += '</body></html>';
+      <div style="font-size:1rem;margin-bottom:0.3em;">${note.content.replace(/\n/g, '<br/>')}</div>
+    </body></html>`;
+    
     const blob = new Blob([htmlContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -540,13 +509,40 @@ const SavedNotes = () => {
                 </div>
                 <div className="flex gap-1 ml-4">
                   <Button 
+                    onClick={() => generateMCQsFromNote(note)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-purple-50"
+                    title="Generate MCQs from this note"
+                    disabled={generatingContent[note.id] === 'mcq'}
+                  >
+                    {generatingContent[note.id] === 'mcq' ? (
+                      <svg className="w-5 h-5 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    ) : (
+                      <Brain className="w-5 h-5 text-purple-600" />
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={() => generateFlashcardsFromNote(note)}
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-orange-50"
+                    title="Generate flashcards from this note"
+                    disabled={generatingContent[note.id] === 'flashcard'}
+                  >
+                    {generatingContent[note.id] === 'flashcard' ? (
+                      <svg className="w-5 h-5 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    ) : (
+                      <Zap className="w-5 h-5 text-orange-600" />
+                    )}
+                  </Button>
+                  <Button 
                     onClick={() => openNoteInNewTab(note)}
                     variant="ghost"
                     size="icon"
                     className="hover:bg-blue-50"
                     title="Open note in new tab"
                   >
-                    {/* Eye icon for view */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1.5 12s3.5-7 10.5-7 10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
                   </Button>
                   <Button 
@@ -556,7 +552,6 @@ const SavedNotes = () => {
                     className="hover:bg-red-50"
                     title="Export as PDF"
                   >
-                    {/* Red down arrow for PDF */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4" /><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor" /></svg>
                   </Button>
                   <Button 
@@ -566,7 +561,6 @@ const SavedNotes = () => {
                     className="hover:bg-blue-50"
                     title="Export as DOC"
                   >
-                    {/* Blue down arrow for DOC */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4" /><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor" /></svg>
                   </Button>
                   <Button 
@@ -576,7 +570,6 @@ const SavedNotes = () => {
                     className="hover:bg-red-50"
                     title="Delete note"
                   >
-                    {/* Delete: Trash (Lucide) icon */}
                     <Trash2 className="w-5 h-5 text-red-500" />
                   </Button>
                 </div>
