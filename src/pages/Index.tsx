@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +8,7 @@ import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
-import { Brain, FileText, BookOpen, Target, Menu, Zap } from 'lucide-react';
+import { Brain, FileText, BookOpen, Target, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
@@ -92,14 +93,6 @@ const Index = () => {
       action: () => navigate('/mcq-practice'),
       description: 'Take practice quizzes to test your knowledge',
       shortcut: 'P'
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: Zap,
-      action: () => navigate('/flashcards'),
-      description: 'Practice with your saved flashcards',
-      shortcut: 'F'
     },
     {
       id: 'mcqs',

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Zap, FileText, Save, Download, Copy, Sparkles } from 'lucide-react';
+import { Zap, FileText, Save, Download, Copy } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -16,7 +17,6 @@ const NotesGenerator = () => {
   const [noteTitle, setNoteTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
   const { user } = useAuth();
 
   const generateNotes = async () => {
@@ -61,129 +61,6 @@ This is a summary of the provided content, organized into clear, actionable note
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generateFlashcards = async () => {
-    if (!generatedNotes.trim()) {
-      toast({
-        title: "Error",
-        description: "Please generate notes first before creating flashcards",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "Please log in to save flashcards",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setGeneratingFlashcards(true);
-    try {
-      console.log('=== FLASHCARD GENERATION DEBUG ===');
-      console.log('User object:', user);
-      console.log('User ID:', user.id);
-      console.log('User email:', user.email);
-      
-      // Check current session
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
-      console.log('Current session:', session);
-      console.log('Session error:', sessionError);
-      
-      // Test database connection with a simple query
-      const { data: testQuery, error: testError } = await supabase
-        .from('flashcards')
-        .select('count')
-        .eq('user_id', user.id);
-      
-      console.log('Test query result:', testQuery);
-      console.log('Test query error:', testError);
-      
-      // Mock AI flashcard generation - create multiple flashcards from notes
-      const mockFlashcards = [
-        {
-          front: "What are the main key points covered in these notes?",
-          back: "The key points include the main ideas extracted from the original text, organized into clear and actionable notes.",
-          category: "Summary"
-        },
-        {
-          front: "What is the purpose of generating structured notes?",
-          back: "To organize information into clear, actionable formats that make studying and review more effective.",
-          category: "Concepts"
-        },
-        {
-          front: "What elements are typically included in well-structured notes?",
-          back: "Key points, summary sections, important concepts, terminology, definitions, and critical insights.",
-          category: "Structure"
-        }
-      ];
-
-      console.log('Generated flashcards:', mockFlashcards);
-
-      // Prepare flashcards for insertion with explicit user_id
-      const flashcardsToInsert = mockFlashcards.map(card => ({
-        front: card.front,
-        back: card.back,
-        category: card.category,
-        original_text: generatedNotes,
-        user_id: user.id
-      }));
-
-      console.log('Flashcards to insert:', flashcardsToInsert);
-
-      // Insert flashcards into Supabase
-      console.log('Attempting to insert flashcards...');
-      const { data: insertedData, error: insertError } = await supabase
-        .from('flashcards')
-        .insert(flashcardsToInsert)
-        .select();
-
-      console.log('Insert result:', { data: insertedData, error: insertError });
-
-      if (insertError) {
-        console.error('Insert error details:', {
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
-          code: insertError.code
-        });
-        throw insertError;
-      }
-
-      console.log('Successfully inserted flashcards:', insertedData);
-
-      // Verify the data was actually inserted by querying back
-      console.log('Verifying inserted data...');
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      console.log('Verification query result:', verifyData);
-      console.log('Verification query error:', verifyError);
-
-      toast({
-        title: "Success",
-        description: `Generated and saved ${insertedData?.length || 0} flashcards!`
-      });
-      
-    } catch (error) {
-      console.error('Error generating flashcards:', error);
-      console.error('Error stack:', error.stack);
-      toast({
-        title: "Error",
-        description: `Failed to generate flashcards: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setGeneratingFlashcards(false);
     }
   };
 
@@ -375,16 +252,6 @@ This is a summary of the provided content, organized into clear, actionable note
                   {saving ? 'Saving...' : 'Save Notes'}
                 </Button>
                 <Button 
-                  onClick={generateFlashcards} 
-                  disabled={generatingFlashcards || !user}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  {generatingFlashcards ? 'Creating...' : 'Create Flashcards'}
-                </Button>
-                <Button 
                   onClick={exportToPDF} 
                   variant="outline"
                   size="sm"
@@ -405,7 +272,7 @@ This is a summary of the provided content, organized into clear, actionable note
               </div>
               {!user && (
                 <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
-                  Please log in to save notes and create flashcards
+                  Please log in to save notes
                 </p>
               )}
             </>

@@ -1,10 +1,9 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileText, Brain, Zap, BarChart3, TrendingUp, Settings } from "lucide-react";
-import SavedFlashcards from './SavedFlashcards';
+import { FileText, Brain, BarChart3, TrendingUp, Settings } from "lucide-react";
 
 const DashboardContent = () => {
   const [activeTab, setActiveTab] = useState("notes");
@@ -27,13 +26,13 @@ const DashboardContent = () => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button className="bg-green-600 hover:bg-green-700">Create Flashcards from Notes</Button>
+            <Button className="bg-green-600 hover:bg-green-700">Create Notes from Text</Button>
             <Button className="bg-blue-600 hover:bg-blue-700">Generate MCQs from Text</Button>
           </CardContent>
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="notes">
               <FileText className="w-4 h-4 mr-2" />
               Notes
@@ -41,10 +40,6 @@ const DashboardContent = () => {
             <TabsTrigger value="mcqs">
               <Brain className="w-4 h-4 mr-2" />
               MCQs
-            </TabsTrigger>
-            <TabsTrigger value="flashcards">
-              <Zap className="w-4 h-4 mr-2" />
-              Flashcards
             </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -76,19 +71,6 @@ const DashboardContent = () => {
                 MCQs content goes here.
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="flashcards" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Flashcards</h2>
-              <Link to="/flashcards">
-                <Button className="bg-orange-600 hover:bg-orange-700">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Practice Flashcards
-                </Button>
-              </Link>
-            </div>
-            <SavedFlashcards />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
