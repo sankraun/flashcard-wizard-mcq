@@ -7,18 +7,9 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuGroup
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import { 
-  User, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  Bell,
-  Shield,
-  Palette
-} from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface AvatarDropdownProps {
@@ -110,78 +101,16 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({ user, onSignOut, showNa
           </div>
         </DropdownMenuLabel>
 
-        {/* Account Management */}
-        <DropdownMenuGroup>
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <User className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Profile</p>
-              <p className="text-xs text-gray-500">Manage your account settings</p>
-            </div>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <Bell className="w-4 h-4 text-green-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Notifications</p>
-              <p className="text-xs text-gray-500">Manage notification preferences</p>
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator className="my-2 bg-gray-200" />
-
-        {/* Settings & Preferences */}
-        <DropdownMenuGroup>
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Settings className="w-4 h-4 text-gray-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Settings</p>
-              <p className="text-xs text-gray-500">App preferences and configuration</p>
-            </div>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <Palette className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Appearance</p>
-              <p className="text-xs text-gray-500">Theme and display options</p>
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator className="my-2 bg-gray-200" />
-
-        {/* Support & Security */}
-        <DropdownMenuGroup>
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <HelpCircle className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Help & Support</p>
-              <p className="text-xs text-gray-500">Get help and contact support</p>
-            </div>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Privacy & Security</p>
-              <p className="text-xs text-gray-500">Manage your privacy settings</p>
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
+        {/* Profile */}
+        <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <User className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-900">Profile</p>
+            <p className="text-xs text-gray-500">Manage your account settings</p>
+          </div>
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator className="my-2 bg-gray-200" />
 
