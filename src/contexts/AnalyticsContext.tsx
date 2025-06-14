@@ -52,6 +52,47 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Helper function to format date to YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
+  // Calculate streak based on daily goal completion
+  const calculateStreak = async (userId: string, dailyGoal: number) => {
+    const today = new Date();
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+    
+    // Go backwards day by day until we find a day where the goal wasn't met
+    while (true) {
+      const dateStr = formatDate(checkDate);
+      
+      const { data: dayActivity } = await supabase
+        .from('daily_activity_logs')
+        .select('questions_completed')
+        .eq('user_id', userId)
+        .eq('date', dateStr)
+        .single();
+      
+      // If no activity for this day or didn't meet daily goal, break the streak
+      if (!dayActivity || dayActivity.questions_completed < dailyGoal) {
+        // If this is today and we haven't met the goal yet, don't break the streak
+        if (dateStr === formatDate(today) && dayActivity && dayActivity.questions_completed > 0) {
+          // Today has some progress but hasn't met goal yet - keep existing streak
+          break;
+        }
+        // If this is any other day or today with no progress, break streak
+        break;
+      }
+      
+      // This day met the goal, increment streak
+      currentStreak++;
+      
+      // Move to previous day
+      checkDate.setDate(checkDate.getDate() - 1);
+      
+      // Don't go back more than 365 days to prevent infinite loops
+      if (currentStreak >= 365) break;
+    }
+    
+    return currentStreak;
+  };
+
   // Initialize or fetch user analytics settings
   useEffect(() => {
     if (user) {
@@ -85,6 +126,17 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
           .select()
           .single();
         settings = data;
+      }
+
+      // Calculate actual streak based on daily goal completion
+      const actualStreak = await calculateStreak(user.id, settings.daily_goal);
+      
+      // Update streak in database if it's different
+      if (actualStreak !== settings.current_streak) {
+        await supabase
+          .from('user_analytics_settings')
+          .update({ current_streak: actualStreak })
+          .eq('user_id', user.id);
       }
 
       // Fetch today's activity
@@ -152,7 +204,7 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         .order('awarded_at', { ascending: false });
 
       setState({
-        streak: settings?.current_streak || 0,
+        streak: actualStreak, // Use calculated streak instead of database value
         dailyGoal: settings?.daily_goal || 10,
         todayProgress: todayActivity?.questions_completed || 0,
         accuracyHistory: accuracyHistory,
@@ -211,6 +263,18 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       if (error) throw error;
 
       setState(prev => ({ ...prev, dailyGoal: goal }));
+      
+      // Recalculate streak with new daily goal
+      const newStreak = await calculateStreak(user.id, goal);
+      
+      // Update streak in database and state
+      await supabase
+        .from('user_analytics_settings')
+        .update({ current_streak: newStreak })
+        .eq('user_id', user.id);
+        
+      setState(prev => ({ ...prev, streak: newStreak }));
+      
       toast({
         title: 'Daily goal updated',
         description: `Your new daily goal is ${goal} questions.`,
@@ -241,11 +305,13 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         .eq('date', date)
         .single();
 
+      let newQuestionsCompleted = results.length;
       if (existingLog) {
+        newQuestionsCompleted = existingLog.questions_completed + results.length;
         await supabase
           .from('daily_activity_logs')
           .update({
-            questions_completed: existingLog.questions_completed + results.length,
+            questions_completed: newQuestionsCompleted,
             correct_answers: existingLog.correct_answers + correct,
             study_minutes: existingLog.study_minutes + totalTimeInMinutes
           })
@@ -256,7 +322,7 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
           .insert({
             user_id: user.id,
             date,
-            questions_completed: results.length,
+            questions_completed: newQuestionsCompleted,
             correct_answers: correct,
             study_minutes: totalTimeInMinutes
           });
@@ -310,7 +376,7 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         }
       }
 
-      // Update streak and check for badges
+      // Get current settings to check daily goal
       const { data: settings } = await supabase
         .from('user_analytics_settings')
         .select('*')
@@ -318,57 +384,37 @@ const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         .single();
 
       if (settings) {
-        const lastActivityDate = new Date(settings.last_activity_date);
-        lastActivityDate.setHours(0, 0, 0, 0); // Reset to start of day
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset to start of day
-        const todayTime = today.getTime();
-        const lastActivityTime = lastActivityDate.getTime();
-        const diffDays = Math.floor((todayTime - lastActivityTime) / (1000 * 60 * 60 * 24));
+        // Calculate new streak based on goal completion
+        const newStreak = await calculateStreak(user.id, settings.daily_goal);
+        
+        // Update streak in database
+        await supabase
+          .from('user_analytics_settings')
+          .update({
+            current_streak: newStreak,
+            last_activity_date: date
+          })
+          .eq('user_id', user.id);
 
-        let newStreak = settings.current_streak;
+        setState(prev => ({
+          ...prev,
+          streak: newStreak,
+          todayProgress: newQuestionsCompleted
+        }));
 
-        // If this is the first time ever (no streak, no activity), or if last activity is not today
-        if (newStreak === 0 || lastActivityTime !== todayTime) {
-          if (diffDays === 0) {
-            // First activity today (new user or after reset)
-            newStreak = 1;
-          } else if (diffDays === 1) {
-            // Consecutive day
-            newStreak = settings.current_streak + 1;
-          } else {
-            // Missed a day or more
-            newStreak = 1;
-          }
-
+        // Check and award streak badges
+        if (newStreak === 7) {
           await supabase
-            .from('user_analytics_settings')
-            .update({
-              current_streak: newStreak,
-              last_activity_date: date
-            })
-            .eq('user_id', user.id);
-
-          setState(prev => ({
-            ...prev,
-            streak: newStreak,
-            todayProgress: (existingLog?.questions_completed || 0) + results.length
-          }));
-
-          // Check and award streak badges
-          if (newStreak === 7) {
-            await supabase
-              .from('user_badges')
-              .insert({ user_id: user.id, badge_name: 'Week Warrior' })
-              .select()
-              .single();
-          } else if (newStreak === 30) {
-            await supabase
-              .from('user_badges')
-              .insert({ user_id: user.id, badge_name: 'Monthly Master' })
-              .select()
-              .single();
-          }
+            .from('user_badges')
+            .insert({ user_id: user.id, badge_name: 'Week Warrior' })
+            .select()
+            .single();
+        } else if (newStreak === 30) {
+          await supabase
+            .from('user_badges')
+            .insert({ user_id: user.id, badge_name: 'Monthly Master' })
+            .select()
+            .single();
         }
       }
 
