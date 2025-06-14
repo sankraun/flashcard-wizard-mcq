@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Flame, Award, Clock, TrendingUp, Star, Info, TrendingDown, ArrowUp, ArrowDown, Target, BookOpen, ChartNoAxes } from 'lucide-react';
+import { BarChart, Flame, Award, Clock, TrendingUp, Star, Info, TrendingDown, ArrowUp, ArrowDown, Target, BookOpen, BarChart3 } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import * as Recharts from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -360,7 +359,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <CardContent className="pt-0">
             {enhancedAccuracyData.length === 0 ? (
               <EmptyState
-                icon={ChartNoAxes}
+                icon={BarChart3}
                 title="No data yet"
                 subtitle="Start practicing to see your accuracy trends"
                 actionText="Begin practice"
