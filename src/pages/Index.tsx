@@ -209,6 +209,7 @@ const Index = () => {
               weakTopics={weakTopics}
               studyTime={studyTime}
               badges={badges}
+              onSetDailyGoal={setDailyGoal}
             />
           </SlideIn>
         );
