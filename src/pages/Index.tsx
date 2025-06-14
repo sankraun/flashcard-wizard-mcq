@@ -8,7 +8,7 @@ import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
-import { Brain, FileText, BookOpen, Target, Menu } from 'lucide-react';
+import { Brain, FileText, BookOpen, Target, Menu, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
@@ -135,11 +135,11 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <FadeIn>
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your workspace...</p>
+            <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading your workspace...</p>
           </div>
         </FadeIn>
       </div>
@@ -219,134 +219,130 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #eff6ff 0%, #fff 50%, #ede9fe 100%)' }}>
-      {/* Professional Minimalist Header */}
+    <div className="min-h-screen bg-white">
+      {/* Professional Header */}
       <FadeIn>
-        <header className="bg-white/70 backdrop-blur border-b border-blue-100 sticky top-0 z-50">
-          <div className="container mx-auto px-4 py-2">
-            <div className="flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
               {/* Logo & Brand */}
               <HoverCard>
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0l-1.414-1.414M6.05 6.05L4.636 4.636" />
-                    </svg>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-slate-900 rounded-lg">
+                    <Zap className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent tracking-tight select-none">
+                  <span className="text-xl font-semibold text-slate-900 tracking-tight">
                     NeutronAI
                   </span>
                 </div>
               </HoverCard>
 
-              {/* Desktop Navigation - Hidden on mobile */}
-              <div className="hidden lg:flex flex-1 justify-center min-w-0">
-                <div className="flex flex-row flex-nowrap items-center justify-center gap-x-4 w-full max-w-5xl">
-                  {navigationItems.map((item, index) => (
-                    <EnhancedTooltip
-                      key={item.id}
-                      content={
-                        <div>
-                          <div className="font-medium">{item.description}</div>
-                          <div className="text-xs opacity-75 mt-1">
-                            Shortcut: {item.shortcut}
-                          </div>
-                        </div>
-                      }
-                      variant="rich"
-                      title={item.label}
-                    >
-                      <SlideIn delay={index * 50}>
-                        <AnimatedButton
-                          onClick={item.action}
-                          variant={
-                            (item.id === 'practice' && false) || 
-                            (item.id !== 'practice' && activeTab === item.id) 
-                              ? 'secondary' 
-                              : 'ghost'
-                          }
-                          className="flex items-center gap-2 whitespace-nowrap px-4"
-                          animationType="scale"
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </AnimatedButton>
-                      </SlideIn>
-                    </EnhancedTooltip>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mobile Menu Button - Visible on mobile only */}
-              <div className="lg:hidden">
-                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                  <SheetTrigger asChild>
-                    <AnimatedButton variant="ghost" size="icon" className="h-10 w-10" animationType="scale">
-                      <Menu className="h-5 w-5" />
-                      <span className="sr-only">Open menu</span>
-                    </AnimatedButton>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-64">
-                    <div className="flex flex-col gap-4 mt-8">
-                      <FadeIn delay={100}>
-                        <div className="text-center pb-4 border-b">
-                          <span className="text-sm text-blue-900/80 font-medium">
-                            Welcome, {getNickname()}
-                          </span>
-                        </div>
-                      </FadeIn>
-                      <div className="flex flex-col gap-2">
-                        {navigationItems.map((item, index) => (
-                          <SlideIn key={item.id} direction="right" delay={index * 50}>
-                            <EnhancedTooltip
-                              content={item.description}
-                              side="left"
-                              variant="info"
-                            >
-                              <AnimatedButton
-                                onClick={() => handleNavItemClick(item)}
-                                variant={
-                                  (item.id === 'practice' && false) || 
-                                  (item.id !== 'practice' && activeTab === item.id) 
-                                    ? 'secondary' 
-                                    : 'ghost'
-                                }
-                                className="flex items-center gap-3 w-full justify-start px-4 py-3 h-auto"
-                                animationType="slide"
-                              >
-                                <item.icon className="w-5 h-5" />
-                                <span className="text-base">{item.label}</span>
-                              </AnimatedButton>
-                            </EnhancedTooltip>
-                          </SlideIn>
-                        ))}
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-
-              {/* Right side: Welcome and Avatar - Desktop only */}
-              <div className="hidden lg:flex items-center gap-2">
-                <SlideIn direction="right" delay={100}>
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center space-x-1">
+                {navigationItems.map((item, index) => (
                   <EnhancedTooltip
-                    content={`Streak: ${streak} days | Today: ${todayProgress}/${dailyGoal} questions`}
-                    variant="info"
-                    title="Your Progress"
+                    key={item.id}
+                    content={
+                      <div>
+                        <div className="font-medium">{item.description}</div>
+                        <div className="text-xs opacity-75 mt-1">
+                          Shortcut: {item.shortcut}
+                        </div>
+                      </div>
+                    }
+                    variant="rich"
+                    title={item.label}
                   >
-                    <span className="text-sm text-blue-900/80 font-medium px-2 whitespace-nowrap text-center">
-                      Welcome, {getNickname()}
-                    </span>
+                    <SlideIn delay={index * 50}>
+                      <AnimatedButton
+                        onClick={item.action}
+                        variant={
+                          (item.id === 'practice' && false) || 
+                          (item.id !== 'practice' && activeTab === item.id) 
+                            ? 'default' 
+                            : 'ghost'
+                        }
+                        size="sm"
+                        className="h-9 px-3 text-sm font-medium"
+                        animationType="scale"
+                      >
+                        <item.icon className="w-4 h-4 mr-2" />
+                        {item.label}
+                      </AnimatedButton>
+                    </SlideIn>
                   </EnhancedTooltip>
-                </SlideIn>
-                <SlideIn direction="right" delay={150}>
-                  <AvatarDropdown onSignOut={signOut} user={user} />
-                </SlideIn>
+                ))}
               </div>
 
-              {/* Avatar only - Mobile */}
-              <div className="lg:hidden">
-                <AvatarDropdown onSignOut={signOut} user={user} />
+              {/* Right Side */}
+              <div className="flex items-center space-x-4">
+                {/* User Info - Desktop */}
+                <div className="hidden lg:flex items-center space-x-3">
+                  <SlideIn direction="right" delay={100}>
+                    <EnhancedTooltip
+                      content={`Streak: ${streak} days | Today: ${todayProgress}/${dailyGoal} questions`}
+                      variant="info"
+                      title="Your Progress"
+                    >
+                      <span className="text-sm text-slate-600 font-medium">
+                        Welcome, {getNickname()}
+                      </span>
+                    </EnhancedTooltip>
+                  </SlideIn>
+                  <SlideIn direction="right" delay={150}>
+                    <AvatarDropdown onSignOut={signOut} user={user} />
+                  </SlideIn>
+                </div>
+
+                {/* Mobile Menu */}
+                <div className="lg:hidden flex items-center space-x-3">
+                  <AvatarDropdown onSignOut={signOut} user={user} />
+                  <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                    <SheetTrigger asChild>
+                      <AnimatedButton variant="ghost" size="sm" className="h-9 w-9 p-0" animationType="scale">
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Open menu</span>
+                      </AnimatedButton>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-72">
+                      <div className="flex flex-col space-y-6 mt-8">
+                        <FadeIn delay={100}>
+                          <div className="text-center pb-6 border-b border-gray-200">
+                            <span className="text-sm text-slate-600 font-medium">
+                              Welcome, {getNickname()}
+                            </span>
+                          </div>
+                        </FadeIn>
+                        <div className="flex flex-col space-y-2">
+                          {navigationItems.map((item, index) => (
+                            <SlideIn key={item.id} direction="right" delay={index * 50}>
+                              <EnhancedTooltip
+                                content={item.description}
+                                side="left"
+                                variant="info"
+                              >
+                                <AnimatedButton
+                                  onClick={() => handleNavItemClick(item)}
+                                  variant={
+                                    (item.id === 'practice' && false) || 
+                                    (item.id !== 'practice' && activeTab === item.id) 
+                                      ? 'default' 
+                                      : 'ghost'
+                                  }
+                                  className="w-full justify-start h-11 px-4"
+                                  animationType="slide"
+                                >
+                                  <item.icon className="w-5 h-5 mr-3" />
+                                  <span className="text-base">{item.label}</span>
+                                </AnimatedButton>
+                              </EnhancedTooltip>
+                            </SlideIn>
+                          ))}
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
               </div>
             </div>
           </div>
@@ -354,7 +350,7 @@ const Index = () => {
       </FadeIn>
 
       {/* Main Content */}
-      <main className="container mx-auto px-2 sm:px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderContent()}
       </main>
     </div>
