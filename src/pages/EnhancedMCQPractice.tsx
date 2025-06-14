@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +27,9 @@ import {
   TrendingUp,
   Award,
   Calendar,
-  Timer
+  Timer,
+  Settings,
+  CheckSquare
 } from 'lucide-react';
 
 interface MCQ {
@@ -56,9 +59,10 @@ interface PracticeSession {
   answers: SessionAnswer[];
   startTime: Date;
   pausedTime?: Date;
-  practiceMode: 'all' | 'by-difficulty' | 'by-chapter';
+  practiceMode: 'all' | 'by-difficulty' | 'by-chapter' | 'custom-chapters';
   selectedDifficulty?: string;
   selectedChapter?: string;
+  selectedChapters?: string[];
   isCompleted: boolean;
 }
 
@@ -68,9 +72,10 @@ const EnhancedMCQPractice = () => {
   const [currentSession, setCurrentSession] = useState<PracticeSession | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [practiceMode, setPracticeMode] = useState<'all' | 'by-difficulty' | 'by-chapter'>('all');
+  const [practiceMode, setPracticeMode] = useState<'all' | 'by-difficulty' | 'by-chapter' | 'custom-chapters'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
   const [selectedChapter, setSelectedChapter] = useState<string>('');
+  const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
   const [filteredMcqs, setFilteredMcqs] = useState<MCQ[]>([]);
   const [questionStartTime, setQuestionStartTime] = useState<Date | null>(null);
   const [sessionTime, setSessionTime] = useState(0);
@@ -103,7 +108,7 @@ const EnhancedMCQPractice = () => {
 
   useEffect(() => {
     filterMCQs();
-  }, [mcqs, practiceMode, selectedDifficulty, selectedChapter]);
+  }, [mcqs, practiceMode, selectedDifficulty, selectedChapter, selectedChapters]);
 
   const loadMCQs = async () => {
     try {
@@ -178,6 +183,8 @@ const EnhancedMCQPractice = () => {
       filtered = filtered.filter(mcq => mcq.difficulty === selectedDifficulty);
     } else if (practiceMode === 'by-chapter' && selectedChapter) {
       filtered = filtered.filter(mcq => mcq.chapter === selectedChapter);
+    } else if (practiceMode === 'custom-chapters' && selectedChapters.length > 0) {
+      filtered = filtered.filter(mcq => mcq.chapter && selectedChapters.includes(mcq.chapter));
     }
 
     setFilteredMcqs(filtered);
@@ -186,6 +193,14 @@ const EnhancedMCQPractice = () => {
   const getUniqueValues = (field: 'difficulty' | 'chapter') => {
     const values = mcqs.map(mcq => mcq[field]).filter(Boolean);
     return [...new Set(values)];
+  };
+
+  const handleChapterSelection = (chapter: string, checked: boolean) => {
+    if (checked) {
+      setSelectedChapters(prev => [...prev, chapter]);
+    } else {
+      setSelectedChapters(prev => prev.filter(c => c !== chapter));
+    }
   };
 
   const startNewSession = () => {
@@ -209,6 +224,7 @@ const EnhancedMCQPractice = () => {
       practiceMode,
       selectedDifficulty,
       selectedChapter,
+      selectedChapters: practiceMode === 'custom-chapters' ? selectedChapters : undefined,
       isCompleted: false
     };
 
@@ -384,6 +400,9 @@ const EnhancedMCQPractice = () => {
       if (selectedChapter === chapterName) {
         setSelectedChapter('');
       }
+      if (selectedChapters.includes(chapterName)) {
+        setSelectedChapters(prev => prev.filter(c => c !== chapterName));
+      }
 
       toast({
         title: "Chapter Deleted",
@@ -477,6 +496,7 @@ const EnhancedMCQPractice = () => {
                           <div className="font-medium">
                             {session.practiceMode === 'by-difficulty' ? `${session.selectedDifficulty} Questions` :
                              session.practiceMode === 'by-chapter' ? `${session.selectedChapter} Chapter` :
+                             session.practiceMode === 'custom-chapters' ? `Custom Quiz (${session.selectedChapters?.length || 0} chapters)` :
                              'All Questions'}
                           </div>
                           <div className="text-sm text-muted-foreground">
@@ -586,7 +606,7 @@ const EnhancedMCQPractice = () => {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <Button
                         onClick={() => setPracticeMode('all')}
                         variant={practiceMode === 'all' ? 'default' : 'outline'}
@@ -620,6 +640,18 @@ const EnhancedMCQPractice = () => {
                         <span>By Chapter</span>
                         <span className="text-xs text-muted-foreground">
                           {uniqueChapters.length} chapters
+                        </span>
+                      </Button>
+
+                      <Button
+                        onClick={() => setPracticeMode('custom-chapters')}
+                        variant={practiceMode === 'custom-chapters' ? 'default' : 'outline'}
+                        className="h-auto p-4 flex flex-col items-center gap-2"
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span>Custom Quiz</span>
+                        <span className="text-xs text-muted-foreground">
+                          Mix chapters
                         </span>
                       </Button>
                     </div>
@@ -680,6 +712,61 @@ const EnhancedMCQPractice = () => {
                         </div>
                       </div>
                     )}
+
+                    {practiceMode === 'custom-chapters' && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Select Chapters for Custom Quiz:</label>
+                          <Badge variant="outline">{selectedChapters.length} selected</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-4">
+                          {uniqueChapters.map(chapter => {
+                            const chapterMcqCount = mcqs.filter(mcq => mcq.chapter === chapter).length;
+                            return (
+                              <div key={chapter} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                                <Checkbox
+                                  id={`chapter-${chapter}`}
+                                  checked={selectedChapters.includes(chapter)}
+                                  onCheckedChange={(checked) => 
+                                    handleChapterSelection(chapter, checked as boolean)
+                                  }
+                                />
+                                <div className="flex-1">
+                                  <label 
+                                    htmlFor={`chapter-${chapter}`}
+                                    className="text-sm font-medium cursor-pointer"
+                                  >
+                                    {chapter}
+                                  </label>
+                                  <div className="text-xs text-muted-foreground">
+                                    {chapterMcqCount} questions
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {selectedChapters.length > 0 && (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => setSelectedChapters(uniqueChapters)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <CheckSquare className="w-4 h-4 mr-2" />
+                              Select All
+                            </Button>
+                            <Button
+                              onClick={() => setSelectedChapters([])}
+                              variant="outline"
+                              size="sm"
+                            >
+                              Clear All
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -688,7 +775,8 @@ const EnhancedMCQPractice = () => {
                     size="lg"
                     disabled={
                       (practiceMode === 'by-difficulty' && !selectedDifficulty) ||
-                      (practiceMode === 'by-chapter' && !selectedChapter)
+                      (practiceMode === 'by-chapter' && !selectedChapter) ||
+                      (practiceMode === 'custom-chapters' && selectedChapters.length === 0)
                     }
                   >
                     <Play className="w-4 h-4 mr-2" />
