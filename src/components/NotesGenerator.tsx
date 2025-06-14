@@ -136,60 +136,26 @@ This is a summary of the provided content, organized into clear, actionable note
 
       console.log('Flashcards to insert:', flashcardsToInsert);
 
-      // Try inserting all at once first
-      console.log('Attempting bulk insert...');
-      const { data: bulkData, error: bulkError } = await supabase
+      // Insert flashcards into Supabase
+      console.log('Attempting to insert flashcards...');
+      const { data: insertedData, error: insertError } = await supabase
         .from('flashcards')
         .insert(flashcardsToInsert)
         .select();
 
-      if (bulkError) {
-        console.error('Bulk insert failed:', bulkError);
-        console.log('Attempting individual inserts...');
-        
-        // Insert flashcards one by one to better handle errors
-        const insertedFlashcards = [];
-        for (let i = 0; i < flashcardsToInsert.length; i++) {
-          const flashcard = flashcardsToInsert[i];
-          console.log(`Inserting flashcard ${i + 1}:`, flashcard);
-          
-          const { data, error } = await supabase
-            .from('flashcards')
-            .insert([flashcard])
-            .select();
+      console.log('Insert result:', { data: insertedData, error: insertError });
 
-          console.log(`Insert result for flashcard ${i + 1}:`, { data, error });
-
-          if (error) {
-            console.error(`Error inserting flashcard ${i + 1}:`, error);
-            console.error('Error details:', {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
-            });
-            throw error;
-          }
-
-          if (data && data.length > 0) {
-            insertedFlashcards.push(data[0]);
-            console.log(`Successfully inserted flashcard ${i + 1}:`, data[0]);
-          }
-        }
-
-        console.log('All flashcards inserted successfully:', insertedFlashcards);
-        
-        toast({
-          title: "Success",
-          description: `Generated and saved ${insertedFlashcards.length} flashcards!`
+      if (insertError) {
+        console.error('Insert error details:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
         });
-      } else {
-        console.log('Bulk insert successful:', bulkData);
-        toast({
-          title: "Success",
-          description: `Generated and saved ${bulkData.length} flashcards!`
-        });
+        throw insertError;
       }
+
+      console.log('Successfully inserted flashcards:', insertedData);
 
       // Verify the data was actually inserted by querying back
       console.log('Verifying inserted data...');
@@ -202,6 +168,11 @@ This is a summary of the provided content, organized into clear, actionable note
       
       console.log('Verification query result:', verifyData);
       console.log('Verification query error:', verifyError);
+
+      toast({
+        title: "Success",
+        description: `Generated and saved ${insertedData?.length || 0} flashcards!`
+      });
       
     } catch (error) {
       console.error('Error generating flashcards:', error);
