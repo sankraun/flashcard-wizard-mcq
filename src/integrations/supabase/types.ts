@@ -9,119 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      user_analytics_settings: {
-        Row: {
-          user_id: string
-          daily_goal: number
-          last_activity_date: string
-          current_streak: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          user_id: string
-          daily_goal?: number
-          last_activity_date?: string
-          current_streak?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          user_id?: string
-          daily_goal?: number
-          last_activity_date?: string
-          current_streak?: number
-          created_at?: string
-          updated_at?: string
-        }
-      }
       daily_activity_logs: {
         Row: {
-          id: string
-          user_id: string
+          correct_answers: number | null
+          created_at: string | null
           date: string
-          questions_completed: number
-          correct_answers: number
-          study_minutes: number
-          created_at: string
+          id: string
+          questions_completed: number | null
+          study_minutes: number | null
+          user_id: string | null
         }
         Insert: {
-          id?: string
-          user_id: string
+          correct_answers?: number | null
+          created_at?: string | null
           date: string
-          questions_completed?: number
-          correct_answers?: number
-          study_minutes?: number
-          created_at?: string
+          id?: string
+          questions_completed?: number | null
+          study_minutes?: number | null
+          user_id?: string | null
         }
         Update: {
-          id?: string
-          user_id?: string
+          correct_answers?: number | null
+          created_at?: string | null
           date?: string
-          questions_completed?: number
-          correct_answers?: number
-          study_minutes?: number
-          created_at?: string
+          id?: string
+          questions_completed?: number | null
+          study_minutes?: number | null
+          user_id?: string | null
         }
+        Relationships: []
       }
-      topic_performance: {
-        Row: {
-          id: string
-          user_id: string
-          topic: string
-          correct_answers: number
-          total_questions: number
-          study_minutes: number
-          last_practiced: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          topic: string
-          correct_answers?: number
-          total_questions?: number
-          study_minutes?: number
-          last_practiced?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          topic?: string
-          correct_answers?: number
-          total_questions?: number
-          study_minutes?: number
-          last_practiced?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      user_badges: {
-        Row: {
-          id: string
-          user_id: string
-          badge_name: string
-          awarded_at: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          badge_name: string
-          awarded_at?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          badge_name?: string
-          awarded_at?: string
-          created_at?: string
-        }
-      },
       mcqs: {
         Row: {
           chapter: string | null
@@ -191,6 +108,93 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      topic_performance: {
+        Row: {
+          correct_answers: number | null
+          created_at: string | null
+          id: string
+          last_practiced: string | null
+          study_minutes: number | null
+          topic: string
+          total_questions: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          last_practiced?: string | null
+          study_minutes?: number | null
+          topic: string
+          total_questions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          last_practiced?: string | null
+          study_minutes?: number | null
+          topic?: string
+          total_questions?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_analytics_settings: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          daily_goal: number | null
+          last_activity_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          daily_goal?: number | null
+          last_activity_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          daily_goal?: number | null
+          last_activity_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string | null
+          badge_name: string
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          awarded_at?: string | null
+          badge_name: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          awarded_at?: string | null
+          badge_name?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
