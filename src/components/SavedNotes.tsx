@@ -77,73 +77,120 @@ const SavedNotes = () => {
     }
   };
 
+  const splitTextIntoChunks = (text: string, maxChunkSize: number = 3000): string[] => {
+    const chunks: string[] = [];
+    const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      const trimmedSentence = sentence.trim();
+      if ((currentChunk + trimmedSentence).length > maxChunkSize && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = trimmedSentence;
+      } else {
+        currentChunk += (currentChunk ? '. ' : '') + trimmedSentence;
+      }
+    }
+    
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks.length > 0 ? chunks : [text];
+  };
+
   const generateMCQsFromNote = async (note: Note) => {
     setGeneratingContent(prev => ({ ...prev, [note.id]: 'mcq' }));
     
     try {
-      const prompt = `
-        Generate 5 high-quality multiple choice questions from the following notes.
-        
-        Notes: ${note.content}
-        
-        Return a JSON array with this exact structure:
-        [
-          {
-            "question": "Question text here",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correctAnswer": 0,
-            "explanation": "Detailed explanation of why this is correct",
-            "difficulty": "Medium"
-          }
-        ]
-        
-        Make sure questions are:
-        - Clear and unambiguous
-        - Based directly on the provided notes
-        - Have plausible distractors
-        - Include comprehensive explanations
-      `;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
-        })
+      const chunks = splitTextIntoChunks(note.content);
+      const allGeneratedMCQs: any[] = [];
+      
+      toast({
+        title: "Processing...",
+        description: `Breaking note into ${chunks.length} part${chunks.length > 1 ? 's' : ''} for MCQ generation`,
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const questionsPerChunk = Math.max(2, Math.min(5, Math.ceil(10 / chunks.length)));
+        
+        const prompt = `
+          Generate ${questionsPerChunk} high-quality multiple choice questions from the following text (Part ${i + 1} of ${chunks.length}).
+          
+          Text: ${chunk}
+          
+          Return a JSON array with this exact structure:
+          [
+            {
+              "question": "Question text here",
+              "options": ["Option A", "Option B", "Option C", "Option D"],
+              "correctAnswer": 0,
+              "explanation": "Detailed explanation of why this is correct",
+              "difficulty": "Medium"
+            }
+          ]
+          
+          Make sure questions are:
+          - Clear and unambiguous
+          - Based directly on the provided text
+          - Have plausible distractors
+          - Include comprehensive explanations
+          - Cover key concepts from this section
+        `;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 2048,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed for part ${i + 1}: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const generatedText = data.candidates[0].content.parts[0].text;
+        
+        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+          console.warn(`No valid JSON found in response for part ${i + 1}`);
+          continue;
+        }
+
+        const partMCQs = JSON.parse(jsonMatch[0]);
+        allGeneratedMCQs.push(...partMCQs);
+
+        // Add small delay between requests to avoid rate limiting
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
-      const data = await response.json();
-      const generatedText = data.candidates[0].content.parts[0].text;
-      
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
+      if (allGeneratedMCQs.length === 0) {
+        throw new Error('No MCQs were generated from any part of the note');
       }
-
-      const generatedMCQs = JSON.parse(jsonMatch[0]);
 
       // Save MCQs to Supabase
-      const mcqsForDB = generatedMCQs.map((mcq: any) => ({
+      const mcqsForDB = allGeneratedMCQs.map((mcq: any) => ({
         user_id: user!.id,
         question: mcq.question,
         options: mcq.options,
@@ -163,7 +210,7 @@ const SavedNotes = () => {
 
       toast({
         title: "Success!",
-        description: `Generated ${generatedMCQs.length} MCQs from "${note.title}"`,
+        description: `Generated ${allGeneratedMCQs.length} MCQs from "${note.title}" (${chunks.length} part${chunks.length > 1 ? 's' : ''})`,
       });
 
     } catch (error) {
@@ -182,74 +229,96 @@ const SavedNotes = () => {
     setGeneratingContent(prev => ({ ...prev, [note.id]: 'flashcard' }));
     
     try {
-      const prompt = `
-        Generate 8-10 flashcards from the following notes. Create question-answer pairs that help with memorization and understanding.
-        
-        Notes: ${note.content}
-        
-        Return a JSON array with this exact structure:
-        [
-          {
-            "front": "Question or term",
-            "back": "Answer or definition",
-            "category": "topic category"
-          }
-        ]
-        
-        Make flashcards that:
-        - Cover key concepts and terms
-        - Have clear, concise questions
-        - Provide complete but brief answers
-        - Are useful for memorization and review
-      `;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
-        })
+      const chunks = splitTextIntoChunks(note.content);
+      const allGeneratedFlashcards: any[] = [];
+      
+      toast({
+        title: "Processing...",
+        description: `Breaking note into ${chunks.length} part${chunks.length > 1 ? 's' : ''} for flashcard generation`,
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const flashcardsPerChunk = Math.max(3, Math.min(8, Math.ceil(15 / chunks.length)));
+        
+        const prompt = `
+          Generate ${flashcardsPerChunk} flashcards from the following text (Part ${i + 1} of ${chunks.length}). Create question-answer pairs that help with memorization and understanding.
+          
+          Text: ${chunk}
+          
+          Return a JSON array with this exact structure:
+          [
+            {
+              "front": "Question or term",
+              "back": "Answer or definition",
+              "category": "topic category"
+            }
+          ]
+          
+          Make flashcards that:
+          - Cover key concepts and terms from this section
+          - Have clear, concise questions
+          - Provide complete but brief answers
+          - Are useful for memorization and review
+        `;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 2048,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed for part ${i + 1}: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const generatedText = data.candidates[0].content.parts[0].text;
+        
+        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+          console.warn(`No valid JSON found in response for part ${i + 1}`);
+          continue;
+        }
+
+        const partFlashcards = JSON.parse(jsonMatch[0]);
+        allGeneratedFlashcards.push(...partFlashcards);
+
+        // Add small delay between requests to avoid rate limiting
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
-      const data = await response.json();
-      const generatedText = data.candidates[0].content.parts[0].text;
-      
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
+      if (allGeneratedFlashcards.length === 0) {
+        throw new Error('No flashcards were generated from any part of the note');
       }
 
-      const generatedFlashcards = JSON.parse(jsonMatch[0]);
-
-      // For now, we'll just show the flashcards in a toast. 
-      // In a real app, you'd want to save them to a flashcards table
       toast({
         title: "Flashcards Generated!",
-        description: `Generated ${generatedFlashcards.length} flashcards from "${note.title}". Check console for details.`,
+        description: `Generated ${allGeneratedFlashcards.length} flashcards from "${note.title}" (${chunks.length} part${chunks.length > 1 ? 's' : ''}). Check console for details.`,
       });
 
       // Log flashcards to console for now
-      console.log('Generated flashcards:', generatedFlashcards);
+      console.log('Generated flashcards:', allGeneratedFlashcards);
 
     } catch (error) {
       console.error('Error generating flashcards:', error);
