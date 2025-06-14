@@ -15,10 +15,8 @@ import {
   Settings, 
   HelpCircle, 
   LogOut, 
-  Crown, 
   Bell,
   Shield,
-  Download,
   Palette
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -125,16 +123,6 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({ user, onSignOut, showNa
           </DropdownMenuItem>
 
           <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Crown className="w-4 h-4 text-purple-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Upgrade Plan</p>
-              <p className="text-xs text-gray-500">Access premium features</p>
-            </div>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
               <Bell className="w-4 h-4 text-green-600" />
             </div>
@@ -166,16 +154,6 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({ user, onSignOut, showNa
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">Appearance</p>
               <p className="text-xs text-gray-500">Theme and display options</p>
-            </div>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Download className="w-4 h-4 text-orange-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Export Data</p>
-              <p className="text-xs text-gray-500">Download your content</p>
             </div>
           </DropdownMenuItem>
         </DropdownMenuGroup>
