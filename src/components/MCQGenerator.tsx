@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,65 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
     }
 
     return chunks;
+  };
+
+  const generateChapterName = async (text: string): Promise<string> => {
+    const prompt = `
+      Analyze the following text and suggest a concise, descriptive chapter/topic name (maximum 4-5 words).
+      The name should reflect the main subject or theme of the content.
+      
+      Text: ${text.substring(0, 1000)}...
+      
+      Return only the chapter/topic name, nothing else.
+    `;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 50,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate chapter name');
+      }
+
+      const data = await response.json();
+      const suggestedName = data.candidates[0].content.parts[0].text.trim();
+      
+      // Clean up the response and ensure it's reasonable
+      return suggestedName.replace(/['"]/g, '').substring(0, 50);
+    } catch (error) {
+      console.error('Error generating chapter name:', error);
+      // Fallback to a generic name based on content analysis
+      const words = text.toLowerCase().split(/\s+/);
+      const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should'];
+      const significantWords = words.filter(word => word.length > 3 && !commonWords.includes(word));
+      
+      if (significantWords.length > 0) {
+        return significantWords.slice(0, 2).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      }
+      
+      return 'Study Material';
+    }
   };
 
   const generateMCQsForChunk = async (chunk: string, chunkIndex: number, totalChunks: number) => {
@@ -148,6 +208,17 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
     setIsGenerating(true);
     
     try {
+      // Generate chapter name if not provided
+      let finalChapterName = chapter.trim();
+      if (!finalChapterName) {
+        setProcessingStep('Analyzing content to suggest topic name...');
+        finalChapterName = await generateChapterName(inputText);
+        toast({
+          title: "Topic Auto-Generated",
+          description: `Assigned topic: "${finalChapterName}"`,
+        });
+      }
+
       const textChunks = splitTextIntoChunks(inputText.trim());
       let allGeneratedMCQs: any[] = [];
 
@@ -197,7 +268,7 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
         explanation: mcq.explanation,
         difficulty: mcq.difficulty,
         question_type: questionType,
-        chapter: chapter || null,
+        chapter: finalChapterName,
         original_text: inputText
       }));
 
@@ -289,13 +360,13 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
         <div className="space-y-2">
           <Label htmlFor="chapter" className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <FileText className="w-4 h-4 text-blue-600" />
-            Chapter/Topic (optional)
+            Chapter/Topic (optional - will be auto-generated if empty)
           </Label>
           <Input
             id="chapter"
             value={chapter}
             onChange={(e) => setChapter(e.target.value)}
-            placeholder="e.g., Cardiovascular System"
+            placeholder="e.g., Cardiovascular System (leave empty for auto-suggestion)"
             className="rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-gray-900"
           />
         </div>
