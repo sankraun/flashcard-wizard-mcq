@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,41 +108,50 @@ This is a summary of the provided content, organized into clear, actionable note
 
       console.log('Generated flashcards:', mockFlashcards);
 
-      // Save flashcards to database with proper user_id
+      // Prepare flashcards for insertion with explicit user_id
       const flashcardsToInsert = mockFlashcards.map(card => ({
         front: card.front,
         back: card.back,
         category: card.category,
         original_text: generatedNotes,
-        user_id: user.id  // Explicitly set the user_id
+        user_id: user.id
       }));
 
       console.log('Inserting flashcards with user_id:', user.id);
       console.log('Flashcards to insert:', flashcardsToInsert);
 
-      const { data, error } = await supabase
-        .from('flashcards')
-        .insert(flashcardsToInsert)
-        .select();
+      // Insert flashcards one by one to better handle errors
+      const insertedFlashcards = [];
+      for (const flashcard of flashcardsToInsert) {
+        console.log('Inserting flashcard:', flashcard);
+        
+        const { data, error } = await supabase
+          .from('flashcards')
+          .insert([flashcard])
+          .select();
 
-      console.log('Insert result:', { data, error });
+        if (error) {
+          console.error('Error inserting flashcard:', error);
+          throw error;
+        }
 
-      if (error) {
-        console.error('Error saving flashcards:', error);
-        throw error;
+        console.log('Successfully inserted flashcard:', data);
+        if (data && data.length > 0) {
+          insertedFlashcards.push(data[0]);
+        }
       }
 
-      console.log('Successfully saved flashcards:', data);
+      console.log('All flashcards inserted successfully:', insertedFlashcards);
       
       toast({
         title: "Success",
-        description: `Generated and saved ${mockFlashcards.length} flashcards!`
+        description: `Generated and saved ${insertedFlashcards.length} flashcards!`
       });
     } catch (error) {
       console.error('Error generating flashcards:', error);
       toast({
         title: "Error",
-        description: "Failed to generate flashcards",
+        description: `Failed to generate flashcards: ${error.message}`,
         variant: "destructive"
       });
     } finally {
