@@ -435,7 +435,7 @@ const EnhancedMCQPractice = () => {
   const uniqueDifficulties = getUniqueValues('difficulty');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 pb-24">
       <main className="max-w-4xl mx-auto py-8 px-4">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
@@ -832,7 +832,7 @@ const EnhancedMCQPractice = () => {
             </Card>
 
             {/* Current Question */}
-            <Card>
+            <Card className="relative">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
@@ -851,7 +851,7 @@ const EnhancedMCQPractice = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 pb-32">
                 <div className="text-lg leading-relaxed break-words whitespace-pre-wrap">
                   {filteredMcqs[currentSession.currentIndex].question}
                 </div>
@@ -917,27 +917,49 @@ const EnhancedMCQPractice = () => {
                     </p>
                   </div>
                 )}
-
-                <div className="flex gap-4">
-                  {!showResult ? (
-                    <Button 
-                      onClick={submitAnswer} 
-                      className="w-full"
-                      disabled={selectedAnswer === null}
-                    >
-                      Submit Answer
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={nextQuestion} 
-                      className="w-full"
-                    >
-                      {currentSession.currentIndex < filteredMcqs.length - 1 ? 'Next Question' : 'Finish Session'}
-                    </Button>
-                  )}
-                </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Sticky Action Bar - Only show during active session */}
+        {currentSession && !currentSession.isCompleted && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
+            <div className="max-w-4xl mx-auto flex justify-end">
+              {!showResult ? (
+                <Button 
+                  onClick={submitAnswer} 
+                  disabled={selectedAnswer === null}
+                  variant="default"
+                  size="lg"
+                  className="min-w-[140px]"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Check Answer
+                </Button>
+              ) : (
+                <Button 
+                  onClick={nextQuestion} 
+                  variant="default"
+                  size="lg"
+                  className="min-w-[140px]"
+                >
+                  {currentSession.currentIndex < filteredMcqs.length - 1 ? (
+                    <>
+                      Next Question
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      <Award className="w-5 h-5 mr-2" />
+                      Finish Session
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </main>
