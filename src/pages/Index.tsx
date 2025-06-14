@@ -227,7 +227,7 @@ const Index = () => {
                     <Brain className="w-5 h-5 text-white" />
                   </div>
                   <span className="text-xl font-semibold text-gray-900 tracking-tight">
-                    StudyFlow
+                    Neutron AI
                   </span>
                 </div>
               </HoverCard>
