@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EnhancedMCQPractice from "./pages/EnhancedMCQPractice";
 import Dashboard from "./components/Dashboard";
+import Flashcards from "./pages/Flashcards";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/mcq-practice" element={<EnhancedMCQPractice />} />
+                <Route path="/flashcards" element={<Flashcards />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
