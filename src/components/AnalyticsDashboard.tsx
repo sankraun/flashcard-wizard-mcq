@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Flame, Award, Clock, TrendingUp, Star, Info, TrendingDown, ArrowUp, ArrowDown, Target, BookOpen, BarChart3 } from 'lucide-react';
+import { BarChart, Flame, Award, Clock, TrendingUp, Star, Info, TrendingDown, ArrowUp, ArrowDown, Target, BookOpen, BarChart3, Zap, Calendar, Trophy, Medal, Brain, CheckCircle, Timer, Lightbulb, Shield } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import * as Recharts from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -91,49 +92,204 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }));
   }, [studyTime]);
 
-  // Professional achievements with enhanced design
+  // Calculate additional metrics for achievements
+  const totalStudyTime = studyTime.reduce((sum, item) => sum + item.minutes, 0);
+  const totalQuestions = accuracyHistory.reduce((sum, day) => sum + (day.accuracy > 0 ? 10 : 0), 0); // Estimate
+  const averageAccuracy = accuracyHistory.length > 0 ? 
+    accuracyHistory.reduce((sum, day) => sum + day.accuracy, 0) / accuracyHistory.length : 0;
+  const perfectDays = accuracyHistory.filter(day => day.accuracy === 100).length;
+  const consistentDays = accuracyHistory.filter(day => day.accuracy >= 80).length;
+
+  // Comprehensive achievements system with enhanced design
   const allAchievements = [
+    // Beginner achievements
     {
-      key: "noob",
-      label: "Getting Started",
-      description: "Welcome to your learning journey!",
+      key: "first_steps",
+      label: "First Steps",
+      description: "Complete your first practice session",
       icon: <Star className="w-4 h-4" />,
-      unlocked: true,
+      unlocked: totalQuestions > 0,
       gradient: "from-green-400 to-green-600",
+      category: "Getting Started"
     },
     {
-      key: "streak5",
-      label: "Consistent Learner",
-      description: "Maintain a 5-day streak.",
-      icon: <Flame className="w-4 h-4" />,
-      unlocked: streak >= 5,
-      gradient: "from-orange-400 to-red-500",
-    },
-    {
-      key: "streak15",
-      label: "Dedication Master",
-      description: "Maintain a 15-day streak.",
-      icon: <Flame className="w-4 h-4" />,
-      unlocked: streak >= 15,
-      gradient: "from-red-500 to-pink-600",
-    },
-    {
-      key: "accuracy80",
-      label: "Sharp Shooter",
-      description: "Achieve 80%+ accuracy in a week.",
-      icon: <BarChart className="w-4 h-4" />,
-      unlocked: accuracyHistory.some(a => a.accuracy >= 80),
-      gradient: "from-blue-400 to-blue-600",
-    },
-    {
-      key: "accuracy95",
-      label: "Perfectionist",
-      description: "Achieve 95%+ accuracy in a week.",
-      icon: <Award className="w-4 h-4" />,
-      unlocked: accuracyHistory.some(a => a.accuracy >= 95),
+      key: "early_bird",
+      label: "Early Bird",
+      description: "Complete 10 questions",
+      icon: <Lightbulb className="w-4 h-4" />,
+      unlocked: totalQuestions >= 10,
       gradient: "from-yellow-400 to-yellow-600",
+      category: "Progress"
     },
+
+    // Streak achievements
+    {
+      key: "streak_3",
+      label: "On Fire",
+      description: "Maintain a 3-day streak",
+      icon: <Flame className="w-4 h-4" />,
+      unlocked: streak >= 3,
+      gradient: "from-orange-400 to-red-500",
+      category: "Consistency"
+    },
+    {
+      key: "streak_7",
+      label: "Week Warrior",
+      description: "Maintain a 7-day streak",
+      icon: <Calendar className="w-4 h-4" />,
+      unlocked: streak >= 7,
+      gradient: "from-red-500 to-pink-600",
+      category: "Consistency"
+    },
+    {
+      key: "streak_30",
+      label: "Monthly Master",
+      description: "Maintain a 30-day streak",
+      icon: <Trophy className="w-4 h-4" />,
+      unlocked: streak >= 30,
+      gradient: "from-purple-500 to-purple-700",
+      category: "Consistency"
+    },
+    {
+      key: "streak_100",
+      label: "Century Champion",
+      description: "Maintain a 100-day streak",
+      icon: <Medal className="w-4 h-4" />,
+      unlocked: streak >= 100,
+      gradient: "from-indigo-500 to-blue-700",
+      category: "Consistency"
+    },
+
+    // Accuracy achievements
+    {
+      key: "accuracy_70",
+      label: "Good Start",
+      description: "Achieve 70%+ average accuracy",
+      icon: <Target className="w-4 h-4" />,
+      unlocked: averageAccuracy >= 70,
+      gradient: "from-blue-400 to-blue-600",
+      category: "Accuracy"
+    },
+    {
+      key: "accuracy_80",
+      label: "Sharp Shooter",
+      description: "Achieve 80%+ average accuracy",
+      icon: <BarChart className="w-4 h-4" />,
+      unlocked: averageAccuracy >= 80,
+      gradient: "from-cyan-400 to-blue-600",
+      category: "Accuracy"
+    },
+    {
+      key: "accuracy_90",
+      label: "Expert Level",
+      description: "Achieve 90%+ average accuracy",
+      icon: <Brain className="w-4 h-4" />,
+      unlocked: averageAccuracy >= 90,
+      gradient: "from-emerald-400 to-teal-600",
+      category: "Accuracy"
+    },
+    {
+      key: "perfectionist",
+      label: "Perfectionist",
+      description: "Achieve 95%+ average accuracy",
+      icon: <Award className="w-4 h-4" />,
+      unlocked: averageAccuracy >= 95,
+      gradient: "from-yellow-400 to-amber-600",
+      category: "Accuracy"
+    },
+
+    // Perfect day achievements
+    {
+      key: "perfect_day",
+      label: "Perfect Day",
+      description: "Score 100% accuracy in a day",
+      icon: <CheckCircle className="w-4 h-4" />,
+      unlocked: perfectDays >= 1,
+      gradient: "from-green-400 to-emerald-600",
+      category: "Perfect Days"
+    },
+    {
+      key: "perfect_week",
+      label: "Perfect Week",
+      description: "Score 100% accuracy for 7 days",
+      icon: <Shield className="w-4 h-4" />,
+      unlocked: perfectDays >= 7,
+      gradient: "from-teal-400 to-cyan-600",
+      category: "Perfect Days"
+    },
+
+    // Volume achievements
+    {
+      key: "century_club",
+      label: "Century Club",
+      description: "Complete 100 questions",
+      icon: <Target className="w-4 h-4" />,
+      unlocked: totalQuestions >= 100,
+      gradient: "from-violet-400 to-purple-600",
+      category: "Volume"
+    },
+    {
+      key: "thousand_club",
+      label: "Thousand Club",
+      description: "Complete 1,000 questions",
+      icon: <Trophy className="w-4 h-4" />,
+      unlocked: totalQuestions >= 1000,
+      gradient: "from-rose-400 to-pink-600",
+      category: "Volume"
+    },
+
+    // Study time achievements
+    {
+      key: "dedicated_learner",
+      label: "Dedicated Learner",
+      description: "Study for 60+ minutes total",
+      icon: <Clock className="w-4 h-4" />,
+      unlocked: totalStudyTime >= 60,
+      gradient: "from-slate-400 to-gray-600",
+      category: "Study Time"
+    },
+    {
+      key: "time_master",
+      label: "Time Master",
+      description: "Study for 300+ minutes total",
+      icon: <Timer className="w-4 h-4" />,
+      unlocked: totalStudyTime >= 300,
+      gradient: "from-amber-400 to-orange-600",
+      category: "Study Time"
+    },
+
+    // Consistency achievements
+    {
+      key: "consistent_performer",
+      label: "Consistent Performer",
+      description: "Score 80%+ accuracy for 5 days",
+      icon: <TrendingUp className="w-4 h-4" />,
+      unlocked: consistentDays >= 5,
+      gradient: "from-blue-500 to-indigo-600",
+      category: "Consistency"
+    },
+    {
+      key: "speed_demon",
+      label: "Speed Demon",
+      description: "Complete daily goal 5 times",
+      icon: <Zap className="w-4 h-4" />,
+      unlocked: todayProgress >= dailyGoal && streak >= 5,
+      gradient: "from-yellow-500 to-orange-600",
+      category: "Speed"
+    }
   ];
+
+  // Group achievements by category
+  const achievementCategories = useMemo(() => {
+    const categories: { [key: string]: typeof allAchievements } = {};
+    allAchievements.forEach(achievement => {
+      if (!categories[achievement.category]) {
+        categories[achievement.category] = [];
+      }
+      categories[achievement.category].push(achievement);
+    });
+    return categories;
+  }, [allAchievements]);
 
   // Professional Empty State Component
   const EmptyState = ({ 
@@ -263,9 +419,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         </Card>
       </div>
 
-      {/* Center: Enhanced Achievements */}
+      {/* Center: Enhanced Achievements with Categories */}
       <div className="flex flex-col items-center justify-center md:col-span-1 lg:col-span-3">
-        <Card className="card-elevated bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-100 min-h-[400px] w-full max-w-2xl mx-auto">
+        <Card className="card-elevated bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-100 min-h-[400px] w-full max-w-4xl mx-auto">
           <CardHeader className="pb-4 flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-soft">
@@ -283,48 +439,59 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               </Tooltip>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {allAchievements.map((ach) => (
-                <Tooltip key={ach.key}>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={`group p-4 rounded-xl border transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                        ach.unlocked 
-                          ? "bg-white border-yellow-200 hover:shadow-card hover:border-yellow-300 hover:-translate-y-1" 
-                          : "bg-slate-50 border-slate-200 opacity-60"
-                      }`}
-                    >
-                      <div className="flex flex-col items-center text-center space-y-3">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                          ach.unlocked 
-                            ? `bg-gradient-to-br ${ach.gradient} shadow-soft group-hover:shadow-elevated` 
-                            : "bg-slate-200"
-                        }`}>
-                          <div className={ach.unlocked ? "text-white" : "text-slate-400"}>
-                            {ach.icon}
+          <CardContent className="pt-0 space-y-6">
+            {Object.entries(achievementCategories).map(([categoryName, achievements]) => (
+              <div key={categoryName} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-label font-semibold text-slate-700">{categoryName}</h4>
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                  <Badge variant="outline" className="text-xs">
+                    {achievements.filter(a => a.unlocked).length}/{achievements.length}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {achievements.map((achievement) => (
+                    <Tooltip key={achievement.key}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`group p-3 rounded-xl border transition-all duration-300 cursor-pointer transform hover:scale-105 ${
+                            achievement.unlocked 
+                              ? "bg-white border-yellow-200 hover:shadow-card hover:border-yellow-300 hover:-translate-y-1" 
+                              : "bg-slate-50 border-slate-200 opacity-60"
+                          }`}
+                        >
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                              achievement.unlocked 
+                                ? `bg-gradient-to-br ${achievement.gradient} shadow-soft group-hover:shadow-elevated` 
+                                : "bg-slate-200"
+                            }`}>
+                              <div className={achievement.unlocked ? "text-white" : "text-slate-400"}>
+                                {achievement.icon}
+                              </div>
+                            </div>
+                            <div>
+                              <div className={`text-body-sm font-semibold ${achievement.unlocked ? "text-slate-800" : "text-slate-400"}`}>
+                                {achievement.label}
+                              </div>
+                              {achievement.unlocked && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 mx-auto mt-1"></div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className={`text-body font-semibold ${ach.unlocked ? "text-slate-800" : "text-slate-400"}`}>
-                            {ach.label}
-                          </div>
-                          {ach.unlocked && (
-                            <div className="w-2 h-2 rounded-full bg-green-400 mx-auto mt-1"></div>
-                          )}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-center">
+                          <div className="font-medium">{achievement.label}</div>
+                          <div className="text-slate-600">{achievement.unlocked ? achievement.description : `Locked: ${achievement.description}`}</div>
                         </div>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-center">
-                      <div className="font-medium">{ach.label}</div>
-                      <div className="text-slate-600">{ach.unlocked ? ach.description : `Locked: ${ach.description}`}</div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
