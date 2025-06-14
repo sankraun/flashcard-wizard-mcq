@@ -59,11 +59,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onSi
   const displayName = getUserDisplayName(user);
   const userEmail = user?.email || '';
   const averageAccuracy = accuracyHistory.length > 0 
-    ? Math.round(accuracyHistory.reduce((sum, acc) => sum + acc, 0) / accuracyHistory.length)
+    ? Math.round(accuracyHistory.reduce((sum, item) => sum + item.accuracy, 0) / accuracyHistory.length)
     : 0;
 
-  const totalStudyHours = Math.floor(studyTime / 60);
-  const totalStudyMinutes = studyTime % 60;
+  const totalStudyMinutes = Array.isArray(studyTime) 
+    ? studyTime.reduce((sum, item) => sum + item.minutes, 0)
+    : typeof studyTime === 'number' ? studyTime : 0;
+  const totalStudyHours = Math.floor(totalStudyMinutes / 60);
+  const remainingMinutes = totalStudyMinutes % 60;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -140,7 +143,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onSi
                   <span className="text-xs font-medium text-blue-700">Study Time</span>
                 </div>
                 <p className="text-lg font-bold text-blue-800">
-                  {totalStudyHours}h {totalStudyMinutes}m
+                  {totalStudyHours}h {remainingMinutes}m
                 </p>
               </div>
             </div>
