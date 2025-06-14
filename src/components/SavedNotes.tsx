@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Trash2, Calendar, Filter, Brain, Zap } from 'lucide-react';
+import { FileText, Trash2, Calendar, Filter, Brain } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 interface Note {
@@ -21,7 +22,7 @@ const SavedNotes = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("All");
-  const [generatingContent, setGeneratingContent] = useState<{ [key: string]: 'mcq' | 'flashcard' | null }>({});
+  const [generatingMCQs, setGeneratingMCQs] = useState<{ [key: string]: boolean }>({});
   const { user } = useAuth();
   const apiKey = 'AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y';
 
@@ -100,7 +101,7 @@ const SavedNotes = () => {
   };
 
   const generateMCQsFromNote = async (note: Note) => {
-    setGeneratingContent(prev => ({ ...prev, [note.id]: 'mcq' }));
+    setGeneratingMCQs(prev => ({ ...prev, [note.id]: true }));
     
     try {
       const chunks = splitTextIntoChunks(note.content);
@@ -221,114 +222,7 @@ const SavedNotes = () => {
         variant: "destructive"
       });
     } finally {
-      setGeneratingContent(prev => ({ ...prev, [note.id]: null }));
-    }
-  };
-
-  const generateFlashcardsFromNote = async (note: Note) => {
-    setGeneratingContent(prev => ({ ...prev, [note.id]: 'flashcard' }));
-    
-    try {
-      const chunks = splitTextIntoChunks(note.content);
-      const allGeneratedFlashcards: any[] = [];
-      
-      toast({
-        title: "Processing...",
-        description: `Breaking note into ${chunks.length} part${chunks.length > 1 ? 's' : ''} for flashcard generation`,
-      });
-
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const flashcardsPerChunk = Math.max(3, Math.min(8, Math.ceil(15 / chunks.length)));
-        
-        const prompt = `
-          Generate ${flashcardsPerChunk} flashcards from the following text (Part ${i + 1} of ${chunks.length}). Create question-answer pairs that help with memorization and understanding.
-          
-          Text: ${chunk}
-          
-          Return a JSON array with this exact structure:
-          [
-            {
-              "front": "Question or term",
-              "back": "Answer or definition",
-              "category": "topic category"
-            }
-          ]
-          
-          Make flashcards that:
-          - Cover key concepts and terms from this section
-          - Have clear, concise questions
-          - Provide complete but brief answers
-          - Are useful for memorization and review
-        `;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt
-                  }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 2048,
-            }
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`API request failed for part ${i + 1}: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const generatedText = data.candidates[0].content.parts[0].text;
-        
-        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-          console.warn(`No valid JSON found in response for part ${i + 1}`);
-          continue;
-        }
-
-        const partFlashcards = JSON.parse(jsonMatch[0]);
-        allGeneratedFlashcards.push(...partFlashcards);
-
-        // Add small delay between requests to avoid rate limiting
-        if (i < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (allGeneratedFlashcards.length === 0) {
-        throw new Error('No flashcards were generated from any part of the note');
-      }
-
-      toast({
-        title: "Flashcards Generated!",
-        description: `Generated ${allGeneratedFlashcards.length} flashcards from "${note.title}" (${chunks.length} part${chunks.length > 1 ? 's' : ''}). Check console for details.`,
-      });
-
-      // Log flashcards to console for now
-      console.log('Generated flashcards:', allGeneratedFlashcards);
-
-    } catch (error) {
-      console.error('Error generating flashcards:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate flashcards. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setGeneratingContent(prev => ({ ...prev, [note.id]: null }));
+      setGeneratingMCQs(prev => ({ ...prev, [note.id]: false }));
     }
   };
 
@@ -583,26 +477,12 @@ const SavedNotes = () => {
                     size="icon"
                     className="hover:bg-purple-50"
                     title="Generate MCQs from this note"
-                    disabled={generatingContent[note.id] === 'mcq'}
+                    disabled={generatingMCQs[note.id]}
                   >
-                    {generatingContent[note.id] === 'mcq' ? (
+                    {generatingMCQs[note.id] ? (
                       <svg className="w-5 h-5 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
                     ) : (
                       <Brain className="w-5 h-5 text-purple-600" />
-                    )}
-                  </Button>
-                  <Button 
-                    onClick={() => generateFlashcardsFromNote(note)}
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-orange-50"
-                    title="Generate flashcards from this note"
-                    disabled={generatingContent[note.id] === 'flashcard'}
-                  >
-                    {generatingContent[note.id] === 'flashcard' ? (
-                      <svg className="w-5 h-5 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-                    ) : (
-                      <Zap className="w-5 h-5 text-orange-600" />
                     )}
                   </Button>
                   <Button 
