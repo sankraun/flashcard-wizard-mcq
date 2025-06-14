@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,8 @@ const SavedFlashcards = () => {
   useEffect(() => {
     if (user) {
       loadFlashcards();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -41,19 +42,26 @@ const SavedFlashcards = () => {
         setRefreshing(true);
       }
 
+      if (!user) {
+        console.log('No user found, cannot load flashcards');
+        setFlashcards([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('flashcards')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      console.log('Flashcards query result:', { data, error });
+      console.log('Flashcards query result:', { data, error, userId: user.id });
 
       if (error) {
         console.error('Error loading flashcards:', error);
         throw error;
       }
 
+      console.log('Loaded flashcards:', data);
       setFlashcards(data || []);
       
       if (showRefreshToast) {
@@ -240,6 +248,7 @@ const SavedFlashcards = () => {
             Refresh
           </Button>
         </CardTitle>
+        
         <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
           <div className="relative w-full max-w-xs">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
