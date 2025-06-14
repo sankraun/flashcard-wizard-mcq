@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,15 +8,21 @@ import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
-import { Brain, FileText, BookOpen, Target } from 'lucide-react';
+import { Brain, FileText, BookOpen, Target, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
   const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics'>('mcqs');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   // Removed local analytics state, use context
@@ -48,6 +55,44 @@ const Index = () => {
       return user.email.split('@')[0];
     }
     return 'User';
+  };
+
+  const navigationItems = [
+    {
+      id: 'practice',
+      label: 'Practice MCQ',
+      icon: Target,
+      action: () => navigate('/mcq-practice')
+    },
+    {
+      id: 'mcqs',
+      label: 'MCQ Generator',
+      icon: Brain,
+      action: () => setActiveTab('mcqs')
+    },
+    {
+      id: 'notes-generator',
+      label: 'Notes Generator',
+      icon: FileText,
+      action: () => setActiveTab('notes-generator')
+    },
+    {
+      id: 'saved-notes',
+      label: 'Saved Notes',
+      icon: BookOpen,
+      action: () => setActiveTab('saved-notes')
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: Target,
+      action: () => setActiveTab('analytics')
+    }
+  ];
+
+  const handleNavItemClick = (item: typeof navigationItems[0]) => {
+    item.action();
+    setMobileMenuOpen(false);
   };
 
   useEffect(() => {
@@ -86,66 +131,85 @@ const Index = () => {
                 NeutronAI
               </span>
             </div>
-            {/* Centered Navigation Actions */}
-            <div className="flex-1 flex justify-center min-w-0">
-              <div className="flex flex-row flex-nowrap items-center justify-center gap-x-4 w-full max-w-5xl overflow-x-auto py-1">
-                <Button
-                  onClick={() => navigate('/mcq-practice')}
-                  variant="ghost"
-                  className="flex items-center gap-2 whitespace-nowrap px-2 md:px-4"
-                  title="Practice MCQ"
-                >
-                  <Target className="w-4 h-4" />
-                  <span className="hidden md:inline-block">Practice MCQ</span>
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('mcqs')}
-                  variant={activeTab === 'mcqs' ? 'secondary' : 'ghost'}
-                  className="flex items-center gap-2 whitespace-nowrap px-2 md:px-4"
-                  title="MCQ Generator"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span className="hidden md:inline-block">MCQ Generator</span>
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('notes-generator')}
-                  variant={activeTab === 'notes-generator' ? 'secondary' : 'ghost'}
-                  className="flex items-center gap-2 whitespace-nowrap px-2 md:px-4"
-                  title="Notes Generator"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden md:inline-block">Notes Generator</span>
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('saved-notes')}
-                  variant={activeTab === 'saved-notes' ? 'secondary' : 'ghost'}
-                  className="flex items-center gap-2 whitespace-nowrap px-2 md:px-4"
-                  title="Saved Notes"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span className="hidden md:inline-block">Saved Notes</span>
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('analytics')}
-                  variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
-                  className="flex items-center gap-2 whitespace-nowrap px-2 md:px-4"
-                  title="Analytics"
-                >
-                  <Target className="w-4 h-4" />
-                  <span className="hidden md:inline-block">Analytics</span>
-                </Button>
+
+            {/* Desktop Navigation - Hidden on mobile */}
+            <div className="hidden lg:flex flex-1 justify-center min-w-0">
+              <div className="flex flex-row flex-nowrap items-center justify-center gap-x-4 w-full max-w-5xl">
+                {navigationItems.map((item) => (
+                  <Button
+                    key={item.id}
+                    onClick={item.action}
+                    variant={
+                      (item.id === 'practice' && false) || 
+                      (item.id !== 'practice' && activeTab === item.id) 
+                        ? 'secondary' 
+                        : 'ghost'
+                    }
+                    className="flex items-center gap-2 whitespace-nowrap px-4"
+                    title={item.label}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Button>
+                ))}
               </div>
             </div>
-            {/* Right side: Welcome and Avatar */}
-            <div className="flex items-center gap-2">
+
+            {/* Mobile Menu Button - Visible on mobile only */}
+            <div className="lg:hidden">
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-10 w-10">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-64">
+                  <div className="flex flex-col gap-4 mt-8">
+                    <div className="text-center pb-4 border-b">
+                      <span className="text-sm text-blue-900/80 font-medium">
+                        Welcome, {getNickname()}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {navigationItems.map((item) => (
+                        <Button
+                          key={item.id}
+                          onClick={() => handleNavItemClick(item)}
+                          variant={
+                            (item.id === 'practice' && false) || 
+                            (item.id !== 'practice' && activeTab === item.id) 
+                              ? 'secondary' 
+                              : 'ghost'
+                          }
+                          className="flex items-center gap-3 w-full justify-start px-4 py-3 h-auto"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span className="text-base">{item.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Right side: Welcome and Avatar - Desktop only */}
+            <div className="hidden lg:flex items-center gap-2">
               <span className="text-sm text-blue-900/80 font-medium px-2 whitespace-nowrap text-center">
                 Welcome, {getNickname()}
               </span>
               <AvatarDropdown onSignOut={signOut} user={user} />
             </div>
+
+            {/* Avatar only - Mobile */}
+            <div className="lg:hidden">
+              <AvatarDropdown onSignOut={signOut} user={user} />
+            </div>
           </div>
         </div>
       </header>
+
       {/* Main Content */}
       <main className="container mx-auto px-2 sm:px-4 py-8 animate-fade-in">
         {activeTab === 'mcqs' && (
