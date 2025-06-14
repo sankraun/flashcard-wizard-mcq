@@ -84,8 +84,14 @@ const EnhancedMCQPractice = () => {
     }
 
     if (data && data.length > 0) {
-      setMcqs(data);
-      setAnswers(new Array(data.length).fill(null));
+      // Convert the data to match our interface
+      const convertedMcqs = data.map(mcq => ({
+        ...mcq,
+        options: Array.isArray(mcq.options) ? mcq.options : JSON.parse(mcq.options as string),
+        chapter: mcq.chapter || undefined
+      }));
+      setMcqs(convertedMcqs);
+      setAnswers(new Array(convertedMcqs.length).fill(null));
       if (practiceMode === 'timed') {
         setTimeRemaining(30); // 30 seconds per question
       }

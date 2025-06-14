@@ -89,6 +89,7 @@ export const useGamification = () => {
     if (allAchievements) {
       const achievementsWithStatus = allAchievements.map(achievement => ({
         ...achievement,
+        rarity: achievement.rarity as 'common' | 'rare' | 'epic' | 'legendary',
         unlocked: userAchievements?.some(ua => ua.achievement_id === achievement.id),
         unlocked_at: userAchievements?.find(ua => ua.achievement_id === achievement.id)?.unlocked_at
       }));
@@ -114,6 +115,7 @@ export const useGamification = () => {
     if (activeChallenges) {
       const challengesWithProgress = activeChallenges.map(challenge => ({
         ...challenge,
+        type: challenge.type as 'daily' | 'weekly' | 'special',
         progress: userProgress?.find(up => up.challenge_id === challenge.id)?.progress || {},
         completed_at: userProgress?.find(up => up.challenge_id === challenge.id)?.completed_at,
         points_earned: userProgress?.find(up => up.challenge_id === challenge.id)?.points_earned || 0
@@ -140,6 +142,9 @@ export const useGamification = () => {
     if (allPaths) {
       const pathsWithProgress = allPaths.map(path => ({
         ...path,
+        difficulty: path.difficulty as 'beginner' | 'intermediate' | 'advanced',
+        estimated_duration_hours: path.estimated_duration_hours || 0,
+        prerequisites: path.prerequisites || [],
         current_topic_index: userProgress?.find(up => up.learning_path_id === path.id)?.current_topic_index || 0,
         topics_completed: userProgress?.find(up => up.learning_path_id === path.id)?.topics_completed || [],
         started_at: userProgress?.find(up => up.learning_path_id === path.id)?.started_at,
