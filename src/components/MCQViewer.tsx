@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { BookOpen, Trash2, Calendar, CheckCircle, XCircle, RefreshCw, Target, Award, BarChart, Brain, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface MCQ {
   id: string;
@@ -21,6 +22,7 @@ interface MCQ {
 }
 
 const MCQViewer = () => {
+  const [allMcqs, setAllMcqs] = useState<MCQ[]>([]);
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,6 +33,9 @@ const MCQViewer = () => {
   const [correctCount, setCorrectCount] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const DASHBOARD_MCQ_LIMIT = 5;
 
   useEffect(() => {
     if (user) {
@@ -53,8 +58,11 @@ const MCQViewer = () => {
         options: Array.isArray(mcq.options) ? mcq.options as string[] : []
       }));
 
-      setMcqs(typedData);
-      setUserAnswers(new Array(typedData.length || 0).fill(null));
+      setAllMcqs(typedData);
+      // Limit to 5 MCQs for dashboard view
+      const limitedMcqs = typedData.slice(0, DASHBOARD_MCQ_LIMIT);
+      setMcqs(limitedMcqs);
+      setUserAnswers(new Array(limitedMcqs.length || 0).fill(null));
       setCorrectCount(0);
       setSessionComplete(false);
     } catch (error) {
@@ -80,10 +88,14 @@ const MCQViewer = () => {
 
       if (error) throw error;
 
-      const newMcqs = mcqs.filter(mcq => mcq.id !== mcqId);
-      setMcqs(newMcqs);
+      const newAllMcqs = allMcqs.filter(mcq => mcq.id !== mcqId);
+      setAllMcqs(newAllMcqs);
       
-      if (currentIndex >= newMcqs.length && currentIndex > 0) {
+      // Update limited MCQs for dashboard
+      const newLimitedMcqs = newAllMcqs.slice(0, DASHBOARD_MCQ_LIMIT);
+      setMcqs(newLimitedMcqs);
+      
+      if (currentIndex >= newLimitedMcqs.length && currentIndex > 0) {
         setCurrentIndex(currentIndex - 1);
       }
       
@@ -132,7 +144,7 @@ const MCQViewer = () => {
       // Complete the session
       setSessionComplete(true);
       toast({
-        title: "Practice Session Complete! 🎉",
+        title: "Dashboard Practice Complete! 🎉",
         description: `You scored ${getScorePercentage()}% with ${correctCount} correct answers`,
       });
     }
@@ -155,11 +167,9 @@ const MCQViewer = () => {
     setSessionComplete(false);
   };
 
-  // Helper for dark mode backgrounds
   const getBgClass = (light: string, dark: string) =>
     `bg-${light} dark:bg-${dark}`;
 
-  // Update getDifficultyColor for dark mode
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Easy':
@@ -219,7 +229,7 @@ const MCQViewer = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-blue-600" />
-            Practice Saved MCQs
+            Quick Practice (5 MCQs)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-12">
@@ -242,7 +252,7 @@ const MCQViewer = () => {
     );
   }
 
-  // Session Complete View
+  // Session Complete View - Modified for dashboard
   if (sessionComplete) {
     const accuracyData = getAccuracyByDifficulty();
     
@@ -252,15 +262,15 @@ const MCQViewer = () => {
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 text-2xl">
               <Award className="w-8 h-8 text-yellow-600" />
-              Practice Session Complete!
+              Quick Practice Complete!
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg p-4 shadow-sm">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Target className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium">Overall Score</span>
+                  <span className="font-medium">Score</span>
                 </div>
                 <div className="text-3xl font-bold text-blue-600">{getScorePercentage()}%</div>
                 <div className="text-sm text-muted-foreground">{correctCount}/{userAnswers.filter(a => a !== null).length} correct</div>
@@ -269,49 +279,41 @@ const MCQViewer = () => {
               <div className="bg-white rounded-lg p-4 shadow-sm">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <BarChart className="w-5 h-5 text-green-600" />
-                  <span className="font-medium">Questions Completed</span>
+                  <span className="font-medium">Questions</span>
                 </div>
                 <div className="text-3xl font-bold text-green-600">{mcqs.length}</div>
-                <div className="text-sm text-muted-foreground">Total questions</div>
-              </div>
-              
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <span className="font-medium">Performance</span>
-                </div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {getScorePercentage() >= 80 ? 'Excellent' : getScorePercentage() >= 60 ? 'Good' : 'Needs Work'}
-                </div>
+                <div className="text-sm text-muted-foreground">Completed</div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <BarChart className="w-4 h-4" />
-                Accuracy by Difficulty
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                {accuracyData.map(({ difficulty, accuracy, count }) => (
-                  <div key={difficulty} className="text-center">
-                    <Badge className={`${getDifficultyColor(difficulty)} mb-2`}>
-                      {difficulty}
-                    </Badge>
-                    <div className="text-2xl font-bold">{accuracy}%</div>
-                    <div className="text-xs text-muted-foreground">{count} questions</div>
-                  </div>
-                ))}
+            {allMcqs.length > DASHBOARD_MCQ_LIMIT && (
+              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Target className="w-6 h-6 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-blue-900">Ready for More Practice?</h3>
+                </div>
+                <p className="text-blue-800 mb-4">
+                  You have {allMcqs.length - DASHBOARD_MCQ_LIMIT} more MCQs waiting! Head to the Practice section for unlimited practice sessions.
+                </p>
+                <Button 
+                  onClick={() => navigate('/mcq-practice')} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  Continue Practicing
+                </Button>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-3 justify-center">
-              <Button onClick={restartSession} className="hover-scale">
+              <Button onClick={restartSession} variant="outline" className="hover-scale">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Practice Again
               </Button>
-              <Button onClick={loadMCQs} variant="outline" className="hover-scale">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Back to MCQs
+              <Button onClick={() => navigate('/mcq-practice')} className="hover-scale">
+                <Target className="w-4 h-4 mr-2" />
+                Full Practice Mode
               </Button>
             </div>
           </CardContent>
@@ -322,10 +324,24 @@ const MCQViewer = () => {
 
   const currentMCQ = mcqs[currentIndex];
   const progress = ((currentIndex + 1) / mcqs.length) * 100;
-  const scorePercentage = getScorePercentage();
 
   return (
     <div className="space-y-8">
+      {/* Header with progress */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Brain className="w-5 h-5 text-blue-600" />
+            Quick Practice
+          </h2>
+          <p className="text-muted-foreground">Complete 5 MCQs from your saved questions</p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-blue-600">{currentIndex + 1}/{mcqs.length}</div>
+          <div className="text-sm text-muted-foreground">Questions</div>
+        </div>
+      </div>
+
       {/* Current MCQ */}
       <Card className="shadow-none border-0 bg-white/90 rounded-xl transition-all duration-300 hover:shadow-xl border hover:border-blue-200 relative pb-24">
         <CardHeader>
@@ -398,7 +414,7 @@ const MCQViewer = () => {
             </div>
           )}
         </CardContent>
-        {/* Action bar absolutely positioned just below the MCQ card */}
+        {/* Action bar */}
         <div className="absolute left-0 right-0 -bottom-6 z-40 flex justify-end bg-white/90 border-t border-blue-100 py-4 px-4 shadow-lg rounded-b-xl">
           <div className="w-full max-w-2xl flex gap-3 justify-end mx-auto">
             {!showAnswer ? (
@@ -432,7 +448,7 @@ const MCQViewer = () => {
                 >
                   {currentIndex === mcqs.length - 1 ? (
                     <>
-                      <Award className="w-5 h-5" /> Complete Practice
+                      <Award className="w-5 h-5" /> Complete
                     </>
                   ) : (
                     <>
