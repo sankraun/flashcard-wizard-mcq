@@ -183,7 +183,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    setContentItems(data || []);
+    // Type assertion to ensure compatibility with ContentItem interface
+    const typedData = (data || []).map(item => ({
+      ...item,
+      type: item.type as 'mcq' | 'notes' | 'pdf',
+      tags: item.tags || []
+    })) as ContentItem[];
+    setContentItems(typedData);
   };
 
   const addContentItem = async (data: Omit<ContentItem, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
@@ -196,8 +202,14 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .select()
       .single();
     if (error) throw error;
-    setContentItems([newItem, ...contentItems]);
-    return newItem;
+    // Type assertion to ensure compatibility with ContentItem interface
+    const typedItem = {
+      ...newItem,
+      type: newItem.type as 'mcq' | 'notes' | 'pdf',
+      tags: newItem.tags || []
+    } as ContentItem;
+    setContentItems([typedItem, ...contentItems]);
+    return typedItem;
   };
 
   const updateContentItem = async (id: string, data: Partial<ContentItem>) => {
@@ -227,7 +239,12 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .ilike('title', `%${query}%`)
       .limit(20);
     if (error) throw error;
-    return data || [];
+    // Type assertion to ensure compatibility with ContentItem interface
+    return (data || []).map(item => ({
+      ...item,
+      type: item.type as 'mcq' | 'notes' | 'pdf',
+      tags: item.tags || []
+    })) as ContentItem[];
   };
 
   const value = {
