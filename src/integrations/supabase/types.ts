@@ -9,42 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      achievements: {
-        Row: {
-          created_at: string
-          criteria: Json
-          description: string
-          icon: string
-          id: string
-          name: string
-          points: number
-          rarity: string
-          type: string
-        }
-        Insert: {
-          created_at?: string
-          criteria: Json
-          description: string
-          icon: string
-          id?: string
-          name: string
-          points?: number
-          rarity?: string
-          type: string
-        }
-        Update: {
-          created_at?: string
-          criteria?: Json
-          description?: string
-          icon?: string
-          id?: string
-          name?: string
-          points?: number
-          rarity?: string
-          type?: string
-        }
-        Relationships: []
-      }
       collections: {
         Row: {
           created_at: string
@@ -160,81 +124,6 @@ export type Database = {
         }
         Relationships: []
       }
-      leaderboard_entries: {
-        Row: {
-          accuracy_percentage: number
-          achievements_count: number
-          created_at: string
-          current_streak: number
-          display_name: string
-          id: string
-          last_activity: string
-          questions_answered: number
-          total_points: number
-          user_id: string
-        }
-        Insert: {
-          accuracy_percentage?: number
-          achievements_count?: number
-          created_at?: string
-          current_streak?: number
-          display_name: string
-          id?: string
-          last_activity?: string
-          questions_answered?: number
-          total_points?: number
-          user_id: string
-        }
-        Update: {
-          accuracy_percentage?: number
-          achievements_count?: number
-          created_at?: string
-          current_streak?: number
-          display_name?: string
-          id?: string
-          last_activity?: string
-          questions_answered?: number
-          total_points?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      learning_paths: {
-        Row: {
-          created_at: string
-          description: string
-          difficulty: string
-          estimated_duration_hours: number | null
-          id: string
-          is_active: boolean
-          name: string
-          prerequisites: string[] | null
-          topics: string[]
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          difficulty: string
-          estimated_duration_hours?: number | null
-          id?: string
-          is_active?: boolean
-          name: string
-          prerequisites?: string[] | null
-          topics: string[]
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          difficulty?: string
-          estimated_duration_hours?: number | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          prerequisites?: string[] | null
-          topics?: string[]
-        }
-        Relationships: []
-      }
       mcqs: {
         Row: {
           chapter: string | null
@@ -307,45 +196,6 @@ export type Database = {
         }
         Relationships: []
       }
-      practice_challenges: {
-        Row: {
-          created_at: string
-          description: string
-          end_date: string
-          goals: Json
-          id: string
-          is_active: boolean
-          name: string
-          rewards: Json
-          start_date: string
-          type: string
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          end_date: string
-          goals: Json
-          id?: string
-          is_active?: boolean
-          name: string
-          rewards: Json
-          start_date: string
-          type: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          end_date?: string
-          goals?: Json
-          id?: string
-          is_active?: boolean
-          name?: string
-          rewards?: Json
-          start_date?: string
-          type?: string
-        }
-        Relationships: []
-      }
       tags: {
         Row: {
           color: string
@@ -406,38 +256,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_achievements: {
-        Row: {
-          achievement_id: string
-          id: string
-          progress: Json | null
-          unlocked_at: string
-          user_id: string
-        }
-        Insert: {
-          achievement_id: string
-          id?: string
-          progress?: Json | null
-          unlocked_at?: string
-          user_id: string
-        }
-        Update: {
-          achievement_id?: string
-          id?: string
-          progress?: Json | null
-          unlocked_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_achievements_achievement_id_fkey"
-            columns: ["achievement_id"]
-            isOneToOne: false
-            referencedRelation: "achievements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_analytics_settings: {
         Row: {
           created_at: string | null
@@ -488,82 +306,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
-      }
-      user_challenge_progress: {
-        Row: {
-          challenge_id: string
-          completed_at: string | null
-          created_at: string
-          id: string
-          points_earned: number | null
-          progress: Json
-          user_id: string
-        }
-        Insert: {
-          challenge_id: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          points_earned?: number | null
-          progress?: Json
-          user_id: string
-        }
-        Update: {
-          challenge_id?: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          points_earned?: number | null
-          progress?: Json
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "practice_challenges"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_learning_paths: {
-        Row: {
-          completed_at: string | null
-          current_topic_index: number
-          id: string
-          learning_path_id: string
-          started_at: string
-          topics_completed: string[] | null
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          current_topic_index?: number
-          id?: string
-          learning_path_id: string
-          started_at?: string
-          topics_completed?: string[] | null
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          current_topic_index?: number
-          id?: string
-          learning_path_id?: string
-          started_at?: string
-          topics_completed?: string[] | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_learning_paths_learning_path_id_fkey"
-            columns: ["learning_path_id"]
-            isOneToOne: false
-            referencedRelation: "learning_paths"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
