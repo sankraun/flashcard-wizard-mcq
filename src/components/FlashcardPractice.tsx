@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shuffle, RotateCcw, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Shuffle, RotateCcw, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface Flashcard {
   id: string;
@@ -22,6 +22,7 @@ const FlashcardPractice = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [practiceStats, setPracticeStats] = useState({
     correct: 0,
     incorrect: 0,
@@ -36,18 +37,34 @@ const FlashcardPractice = () => {
     }
   }, [user]);
 
-  const loadFlashcards = async () => {
+  const loadFlashcards = async (showRefreshToast = false) => {
     try {
+      console.log('Loading flashcards for practice, user:', user?.id);
+      
+      if (showRefreshToast) {
+        setRefreshing(true);
+      }
+
       const { data, error } = await supabase
         .from('flashcards')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
+
+      console.log('Practice flashcards query result:', { data, error });
 
       if (error) throw error;
 
       setFlashcards(data || []);
       if (data && data.length > 0) {
         shuffleFlashcards(data);
+      }
+      
+      if (showRefreshToast) {
+        toast({
+          title: "Refreshed",
+          description: `Loaded ${data?.length || 0} flashcards for practice`
+        });
       }
     } catch (error) {
       console.error('Error loading flashcards:', error);
@@ -58,6 +75,7 @@ const FlashcardPractice = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -122,19 +140,54 @@ const FlashcardPractice = () => {
     );
   }
 
-  if (flashcards.length === 0) {
+  if (!user) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Practice Flashcards</CardTitle>
         </CardHeader>
         <CardContent className="text-center py-8">
+          <div className="text-muted-foreground">
+            Please log in to practice flashcards
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (flashcards.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Practice Flashcards</span>
+            <Button
+              onClick={() => loadFlashcards(true)}
+              variant="outline"
+              size="sm"
+              disabled={refreshing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
           <div className="text-muted-foreground mb-4">
             No flashcards available for practice
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-4">
             Create some flashcards from your notes first
           </p>
+          <Button
+            onClick={() => loadFlashcards(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Check for new flashcards
+          </Button>
         </CardContent>
       </Card>
     );
@@ -197,6 +250,16 @@ const FlashcardPractice = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => loadFlashcards(true)}
+                variant="outline"
+                size="sm"
+                disabled={refreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
               <Button 
                 onClick={() => shuffleFlashcards(flashcards)} 
                 variant="outline" 

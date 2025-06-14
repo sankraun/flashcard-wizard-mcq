@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Zap, Trash2, Calendar, Filter, Eye, EyeOff } from 'lucide-react';
+import { Zap, Trash2, Calendar, Filter, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
 interface Flashcard {
   id: string;
@@ -24,6 +24,7 @@ const SavedFlashcards = () => {
   const [dateFilter, setDateFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [flippedCards, setFlippedCards] = useState<{ [key: string]: boolean }>({});
+  const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -32,16 +33,35 @@ const SavedFlashcards = () => {
     }
   }, [user]);
 
-  const loadFlashcards = async () => {
+  const loadFlashcards = async (showRefreshToast = false) => {
     try {
+      console.log('Loading flashcards for user:', user?.id);
+      
+      if (showRefreshToast) {
+        setRefreshing(true);
+      }
+
       const { data, error } = await supabase
         .from('flashcards')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Flashcards query result:', { data, error });
+
+      if (error) {
+        console.error('Error loading flashcards:', error);
+        throw error;
+      }
 
       setFlashcards(data || []);
+      
+      if (showRefreshToast) {
+        toast({
+          title: "Refreshed",
+          description: `Loaded ${data?.length || 0} flashcards`
+        });
+      }
     } catch (error) {
       console.error('Error loading flashcards:', error);
       toast({
@@ -51,6 +71,7 @@ const SavedFlashcards = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -59,7 +80,8 @@ const SavedFlashcards = () => {
       const { error } = await supabase
         .from('flashcards')
         .delete()
-        .eq('id', flashcardId);
+        .eq('id', flashcardId)
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 
@@ -141,7 +163,7 @@ const SavedFlashcards = () => {
     );
   }
 
-  if (flashcards.length === 0) {
+  if (!user) {
     return (
       <Card>
         <CardHeader>
@@ -151,11 +173,49 @@ const SavedFlashcards = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-8">
+          <div className="text-muted-foreground">
+            Please log in to view your flashcards
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (flashcards.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Saved Flashcards
+            </span>
+            <Button
+              onClick={() => loadFlashcards(true)}
+              variant="outline"
+              size="sm"
+              disabled={refreshing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
           <Zap className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No flashcards yet</h3>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Generate flashcards from your notes to see them here
           </p>
+          <Button
+            onClick={() => loadFlashcards(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Check for new flashcards
+          </Button>
         </CardContent>
       </Card>
     );
@@ -164,9 +224,21 @@ const SavedFlashcards = () => {
   return (
     <Card className="shadow-none border-0 bg-gradient-to-br from-white to-gray-50">
       <CardHeader className="border-b pb-4 mb-2 bg-white/80 sticky top-0 z-10">
-        <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <Zap className="w-5 h-5 text-orange-600" />
-          Saved Flashcards <span className="text-gray-400 font-normal">({filteredFlashcards.length})</span>
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <Zap className="w-5 h-5 text-orange-600" />
+            Saved Flashcards <span className="text-gray-400 font-normal">({filteredFlashcards.length})</span>
+          </span>
+          <Button
+            onClick={() => loadFlashcards(true)}
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </CardTitle>
         <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
           <div className="relative w-full max-w-xs">
