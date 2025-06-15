@@ -44,14 +44,12 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
     try {
       data = JSON.parse(text);
     } catch (e) {
-      // text may be non-JSON; try loose extraction
       data = null;
     }
 
     if (Array.isArray(data)) return { flashcards: data };
     if (data && typeof data === "object" && data.flashcards) return { flashcards: data.flashcards };
-
-    // If Gemini gave non-JSON, try to split by Q/A manually as fallback
+    // fallback: try non-strict Q/A
     if (typeof text === "string") {
       const cards: any[] = [];
       const qas = text.split(/^Q:/gm).map(s => s.trim()).filter(Boolean);
@@ -69,13 +67,11 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
 
     return { flashcards: [] };
   } catch (error) {
-    // Always return as JSON error
     return { error: "Exception parsing Gemini response: " + (error && error.message ? error.message : error) };
   }
 }
 
 function splitText(text: string, maxLen: number = 2000): string[] {
-  // Split on paragraph, sentence, or whitespace boundaries for maxLen
   const chunks = [];
   let current = "";
   for (const line of text.split("\n")) {
@@ -90,11 +86,24 @@ function splitText(text: string, maxLen: number = 2000): string[] {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
   try {
-    const { text } = await req.json();
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    // Parse input JSON with robust error handling
+    let text = "";
+    try {
+      const body = await req.json();
+      text = body?.text || "";
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!text) {
       return new Response(JSON.stringify({ error: "Missing input text" }), {
         status: 400,
@@ -112,7 +121,6 @@ serve(async (req) => {
     for (const chunk of chunks) {
       const result = await generateFlashcardsChunk(chunk);
       if (result.error) {
-        // Stop and return the error for immediate feedback
         return new Response(JSON.stringify({ error: result.error }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -128,9 +136,13 @@ serve(async (req) => {
     try {
       msg = error && error.message ? error.message : JSON.stringify(error);
     } catch {}
+    // Always return a valid JSON response in catch ALL situations
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  // Final fallback, should never run:
+  // return new Response(JSON.stringify({ error: "No response returned" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
+
