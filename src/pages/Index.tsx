@@ -21,6 +21,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import FlashcardGenerator from '@/components/FlashcardGenerator';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -168,7 +169,8 @@ const Index = () => {
         case 'analytics':
           return <LoadingSkeleton variant="analytics" />;
         case 'flashcards':
-          return <LoadingSkeleton variant="flashcards" />;
+          // FIX: Change variant to a valid one ("card")
+          return <LoadingSkeleton variant="card" />;
         default:
           return <LoadingSkeleton variant="card" />;
       }
