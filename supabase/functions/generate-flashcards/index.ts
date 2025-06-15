@@ -18,28 +18,59 @@ Text to turn into flashcards:
 """${text}"""
 Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, ...]
   `;
-  
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + geminiApiKey,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    }
-  );
-  const result = await response.json();
+
   try {
-    // Parse Gemini response for the first candidate's content
-    let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    // Try parsing as JSON
-    let data = JSON.parse(text);
-    if (Array.isArray(data)) return data;
-    if (typeof data === "object" && data.flashcards) return data.flashcards;
-    throw new Error("Could not parse flashcards from Gemini");
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + geminiApiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    // If Gemini API fails, return error info
+    if (!response.ok) {
+      let errText: string = "";
+      try { errText = await response.text(); } catch {}
+      return { error: `Gemini API error: ${response.status} ${errText}` };
+    }
+
+    const result = await response.json();
+    let text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      // text may be non-JSON; try loose extraction
+      data = null;
+    }
+
+    if (Array.isArray(data)) return { flashcards: data };
+    if (data && typeof data === "object" && data.flashcards) return { flashcards: data.flashcards };
+
+    // If Gemini gave non-JSON, try to split by Q/A manually as fallback
+    if (typeof text === "string") {
+      const cards: any[] = [];
+      const qas = text.split(/^Q:/gm).map(s => s.trim()).filter(Boolean);
+      for (let qaChunk of qas) {
+        const [questionPart, ...rest] = qaChunk.split(/^A:/gm);
+        if (rest.length) {
+          cards.push({
+            question: questionPart.trim(),
+            answer: rest.join("A:").trim()
+          });
+        }
+      }
+      if (cards.length) return { flashcards: cards };
+    }
+
+    return { flashcards: [] };
   } catch (error) {
-    return [];
+    // Always return as JSON error
+    return { error: "Exception parsing Gemini response: " + (error && error.message ? error.message : error) };
   }
 }
 
@@ -64,18 +95,40 @@ serve(async (req) => {
   }
   try {
     const { text } = await req.json();
-    if (!text) throw new Error("Missing input text");
+    if (!text) {
+      return new Response(JSON.stringify({ error: "Missing input text" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!geminiApiKey) {
+      return new Response(JSON.stringify({ error: "Missing Gemini API key in edge function env" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const chunks = splitText(text, 2000);
     let allFlashcards: any[] = [];
     for (const chunk of chunks) {
-      const cards = await generateFlashcardsChunk(chunk);
-      allFlashcards = allFlashcards.concat(cards);
+      const result = await generateFlashcardsChunk(chunk);
+      if (result.error) {
+        // Stop and return the error for immediate feedback
+        return new Response(JSON.stringify({ error: result.error }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (result.flashcards) allFlashcards = allFlashcards.concat(result.flashcards);
     }
     return new Response(JSON.stringify({ flashcards: allFlashcards }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: String(error?.message || error) }), {
+    let msg = "Unknown error";
+    try {
+      msg = error && error.message ? error.message : JSON.stringify(error);
+    } catch {}
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
