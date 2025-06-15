@@ -34,6 +34,7 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
     if (!response.ok) {
       let errText: string = "";
       try { errText = await response.text(); } catch {}
+      console.error(`Gemini API error: ${response.status} ${errText}`);
       return { error: `Gemini API error: ${response.status} ${errText}` };
     }
 
@@ -46,9 +47,16 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
       data = null;
     }
 
-    if (Array.isArray(data)) return { flashcards: data };
-    if (data && typeof data === "object" && data.flashcards) return { flashcards: data.flashcards };
+    if (Array.isArray(data)) {
+      console.log("Flashcards parsed as array:", data.length);
+      return { flashcards: data };
+    }
+    if (data && typeof data === "object" && data.flashcards) {
+      console.log("Detected flashcards property in object");
+      return { flashcards: data.flashcards };
+    }
     if (typeof text === "string") {
+      // fallback: loose Q/A regex extraction
       const cards: any[] = [];
       const qas = text.split(/^Q:/gm).map(s => s.trim()).filter(Boolean);
       for (let qaChunk of qas) {
@@ -60,19 +68,23 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
           });
         }
       }
-      if (cards.length) return { flashcards: cards };
+      if (cards.length) {
+        console.log("Extracted fallback flashcards:", cards.length);
+        return { flashcards: cards };
+      }
     }
-
+    console.warn("No flashcards extracted for chunk, returning empty array.");
     return { flashcards: [] };
   } catch (error) {
+    console.error("Exception parsing Gemini response:", error && error.message ? error.message : error);
     return { error: "Exception parsing Gemini response: " + (error && error.message ? error.message : error) };
   }
 }
 
-// Defensive top-level try/catch ensuring JSON always returned
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
+      console.log("OPTIONS request received");
       return new Response(null, { headers: corsHeaders });
     }
 
@@ -80,7 +92,9 @@ serve(async (req) => {
     try {
       const body = await req.json();
       text = body?.text || "";
+      console.log("Received text length:", text.length);
     } catch (e) {
+      console.error("Invalid JSON body received:", e && e.message ? e.message : e);
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,12 +102,14 @@ serve(async (req) => {
     }
 
     if (!text) {
+      console.warn("Empty input text received");
       return new Response(JSON.stringify({ error: "Missing input text" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (!geminiApiKey) {
+      console.error("Missing Gemini API key in edge function env");
       return new Response(JSON.stringify({ error: "Missing Gemini API key in edge function env" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,7 +121,7 @@ serve(async (req) => {
     for (const chunk of chunks) {
       const result = await generateFlashcardsChunk(chunk);
       if (result.error) {
-        // Immediate error return (still JSON)
+        console.error("Flashcard chunk error:", result.error);
         return new Response(JSON.stringify({ error: result.error }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -113,6 +129,7 @@ serve(async (req) => {
       }
       if (result.flashcards) allFlashcards = allFlashcards.concat(result.flashcards);
     }
+    console.log(`Returning ${allFlashcards.length} flashcards`);
     return new Response(JSON.stringify({ flashcards: allFlashcards }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -122,11 +139,17 @@ serve(async (req) => {
       msg = error && error.message ? error.message : JSON.stringify(error);
     } catch {}
     // Always return a valid JSON response, even in total failure
+    console.error("Top-level error handler:", msg);
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  // FINAL catch-all (should never hit)
+  // return new Response(JSON.stringify({ error: "Unreachable: fell through serve handler" }), {
+  //   status: 500,
+  //   headers: { ...corsHeaders, "Content-Type": "application/json" },
+  // });
 });
 
 function splitText(text: string, maxLen: number = 2000): string[] {
