@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 type Flashcard = {
   question: string;
@@ -15,55 +16,44 @@ type Flashcard = {
 
 export default function FlashcardGenerator() {
   const { user } = useAuth();
-  const [inputText, setInputText] = useState("");
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const handleGenerate = async () => {
-    if (!inputText.trim()) {
-      toast({ title: "Please enter some text.", variant: "destructive" });
+  // For editing new entries
+  const [newQuestion, setNewQuestion] = useState("");
+  const [newAnswer, setNewAnswer] = useState("");
+
+  const handleAddCard = () => {
+    if (!newQuestion.trim() || !newAnswer.trim()) {
+      toast({ title: "Question and answer are required.", variant: "destructive" });
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch("/functions/v1/generate-flashcards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText }),
-      });
+    setFlashcards([...flashcards, { question: newQuestion.trim(), answer: newAnswer.trim() }]);
+    setNewQuestion("");
+    setNewAnswer("");
+  };
 
-      let data: any = {};
-      try {
-        // Only attempt .json if content-type is 'application/json'
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          data = await res.json();
-        } else {
-          // Attempt to get text for better debugging/error messages
-          const asText = await res.text();
-          throw new Error(`Invalid response from API: ${asText.slice(0, 200)}`);
-        }
-      } catch (e: any) {
-        throw new Error("Failed to parse server response: " + (e.message || e));
-      }
+  const handleDeleteCard = (idx: number) => {
+    setFlashcards(flashcards.filter((_, i) => i !== idx));
+  };
 
-      if (data.error) throw new Error(data.error);
-      setFlashcards(data.flashcards || []);
-      toast({
-        title: "Flashcards generated!",
-        description: `${(data.flashcards || []).length} cards created.`
-      });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+  const handleEditCard = (
+    idx: number,
+    field: "question" | "answer",
+    value: string
+  ) => {
+    setFlashcards(flashcards.map((card, i) =>
+      i === idx ? { ...card, [field]: value } : card
+    ));
   };
 
   const handleSave = async () => {
     if (!user) {
       toast({ title: "Sign in to save flashcards", variant: "destructive" });
+      return;
+    }
+    if (flashcards.length === 0) {
+      toast({ title: "No flashcards to save", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -78,7 +68,6 @@ export default function FlashcardGenerator() {
         });
       }
       toast({ title: "Flashcards saved to your library!" });
-      setInputText("");
       setFlashcards([]);
     } catch (e: any) {
       toast({ title: "Failed to save flashcards", description: e.message, variant: "destructive" });
@@ -89,31 +78,60 @@ export default function FlashcardGenerator() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-5">
-      <Card className="p-6 space-y-4">
-        <Label htmlFor="flashcard-input" className="font-semibold">Paste Text to Generate Flashcards</Label>
-        <Textarea
-          id="flashcard-input"
-          rows={8}
-          placeholder="Paste your notes, textbook content, or any educational text..."
-          value={inputText}
-          onChange={e => setInputText(e.target.value)}
-        />
-        <Button onClick={handleGenerate} disabled={loading} className="w-full">
-          {loading ? "Generating..." : "Generate Flashcards"}
-        </Button>
+      <Card className="p-6 space-y-6">
+        <div className="space-y-2">
+          <Label className="font-semibold">Add a Flashcard</Label>
+          <Input
+            value={newQuestion}
+            onChange={(e) => setNewQuestion(e.target.value)}
+            placeholder="Question"
+            className="mb-2"
+          />
+          <Textarea
+            rows={2}
+            value={newAnswer}
+            onChange={(e) => setNewAnswer(e.target.value)}
+            placeholder="Answer"
+            className="mb-2"
+          />
+          <Button
+            type="button"
+            onClick={handleAddCard}
+            className="w-full"
+            variant="secondary"
+          >
+            Add Flashcard
+          </Button>
+        </div>
       </Card>
       {flashcards.length > 0 && (
         <Card className="p-4 space-y-3">
-          <div className="font-bold text-blue-700 mb-2">Generated Flashcards</div>
+          <div className="font-bold text-blue-700 mb-2">Your Flashcards</div>
           <div className="divide-y divide-gray-200">
             {flashcards.map((card, idx) => (
-              <div key={idx} className="py-3">
-                <div>
-                  <span className="font-semibold">Q:</span> {card.question}
-                </div>
-                <div>
-                  <span className="font-semibold">A:</span> {card.answer}
-                </div>
+              <div key={idx} className="py-2 flex gap-2 items-center">
+                <Input
+                  value={card.question}
+                  onChange={e => handleEditCard(idx, "question", e.target.value)}
+                  placeholder="Question"
+                  className="flex-1"
+                />
+                <Textarea
+                  value={card.answer}
+                  onChange={e => handleEditCard(idx, "answer", e.target.value)}
+                  rows={2}
+                  placeholder="Answer"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={() => handleDeleteCard(idx)}
+                  variant="destructive"
+                  size="sm"
+                  className="shrink-0"
+                >
+                  Delete
+                </Button>
               </div>
             ))}
           </div>
