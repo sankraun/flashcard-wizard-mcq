@@ -25,7 +25,7 @@ import {
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
-  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics'>('mcqs');
+  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics' | 'flashcards'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const navigate = useNavigate();
@@ -45,14 +45,14 @@ const Index = () => {
   useKeyboardNavigation({
     onEscape: () => setMobileMenuOpen(false),
     onArrowLeft: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex > 0) {
         setActiveTab(tabs[currentIndex - 1]);
       }
     },
     onArrowRight: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex < tabs.length - 1) {
         setActiveTab(tabs[currentIndex + 1]);
@@ -114,6 +114,13 @@ const Index = () => {
       description: 'Access your previously saved notes'
     },
     {
+      id: 'flashcards',
+      label: 'Flashcards',
+      icon: BookOpen,
+      action: () => handleTabChange('flashcards'),
+      description: 'Generate and save digital flashcards',
+    },
+    {
       id: 'analytics',
       label: 'Analytics',
       icon: BarChart3,
@@ -160,6 +167,8 @@ const Index = () => {
           return <LoadingSkeleton variant="list" count={3} />;
         case 'analytics':
           return <LoadingSkeleton variant="analytics" />;
+        case 'flashcards':
+          return <LoadingSkeleton variant="flashcards" />;
         default:
           return <LoadingSkeleton variant="card" />;
       }
@@ -205,6 +214,12 @@ const Index = () => {
               badges={badges}
               onSetDailyGoal={setDailyGoal}
             />
+          </SlideIn>
+        );
+      case 'flashcards':
+        return (
+          <SlideIn direction="up" delay={100}>
+            <FlashcardGenerator />
           </SlideIn>
         );
       default:
