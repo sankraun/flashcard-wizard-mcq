@@ -31,7 +31,6 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
       }
     );
 
-    // If Gemini API fails, return error info
     if (!response.ok) {
       let errText: string = "";
       try { errText = await response.text(); } catch {}
@@ -49,7 +48,6 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
 
     if (Array.isArray(data)) return { flashcards: data };
     if (data && typeof data === "object" && data.flashcards) return { flashcards: data.flashcards };
-    // fallback: try non-strict Q/A
     if (typeof text === "string") {
       const cards: any[] = [];
       const qas = text.split(/^Q:/gm).map(s => s.trim()).filter(Boolean);
@@ -71,28 +69,13 @@ Return the flashcards as a JSON array: [{ "question": "...", "answer": "..." }, 
   }
 }
 
-function splitText(text: string, maxLen: number = 2000): string[] {
-  const chunks = [];
-  let current = "";
-  for (const line of text.split("\n")) {
-    if (current.length + line.length + 1 > maxLen) {
-      chunks.push(current);
-      current = "";
-    }
-    current += (current ? "\n" : "") + line;
-  }
-  if (current) chunks.push(current);
-  return chunks;
-}
-
+// Defensive top-level try/catch ensuring JSON always returned
 serve(async (req) => {
   try {
-    // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Parse input JSON with robust error handling
     let text = "";
     try {
       const body = await req.json();
@@ -116,11 +99,13 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const chunks = splitText(text, 2000);
     let allFlashcards: any[] = [];
     for (const chunk of chunks) {
       const result = await generateFlashcardsChunk(chunk);
       if (result.error) {
+        // Immediate error return (still JSON)
         return new Response(JSON.stringify({ error: result.error }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,13 +121,24 @@ serve(async (req) => {
     try {
       msg = error && error.message ? error.message : JSON.stringify(error);
     } catch {}
-    // Always return a valid JSON response in catch ALL situations
+    // Always return a valid JSON response, even in total failure
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  // Final fallback, should never run:
-  // return new Response(JSON.stringify({ error: "No response returned" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
 
+function splitText(text: string, maxLen: number = 2000): string[] {
+  const chunks = [];
+  let current = "";
+  for (const line of text.split("\n")) {
+    if (current.length + line.length + 1 > maxLen) {
+      chunks.push(current);
+      current = "";
+    }
+    current += (current ? "\n" : "") + line;
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}

@@ -32,10 +32,28 @@ export default function FlashcardGenerator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: inputText }),
       });
-      const data = await res.json();
+
+      let data: any = {};
+      try {
+        // Only attempt .json if content-type is 'application/json'
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          // Attempt to get text for better debugging/error messages
+          const asText = await res.text();
+          throw new Error(`Invalid response from API: ${asText.slice(0, 200)}`);
+        }
+      } catch (e: any) {
+        throw new Error("Failed to parse server response: " + (e.message || e));
+      }
+
       if (data.error) throw new Error(data.error);
       setFlashcards(data.flashcards || []);
-      toast({ title: "Flashcards generated!", description: `${(data.flashcards || []).length} cards created.` });
+      toast({
+        title: "Flashcards generated!",
+        description: `${(data.flashcards || []).length} cards created.`
+      });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
