@@ -7,6 +7,7 @@ import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import FlashcardGenerator from '@/components/FlashcardGenerator';
 import { Brain, FileText, BookOpen, Target, Menu, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
@@ -25,7 +26,7 @@ import {
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
-  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics'>('mcqs');
+  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics' | 'flashcards'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const navigate = useNavigate();
@@ -45,14 +46,14 @@ const Index = () => {
   useKeyboardNavigation({
     onEscape: () => setMobileMenuOpen(false),
     onArrowLeft: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex > 0) {
         setActiveTab(tabs[currentIndex - 1]);
       }
     },
     onArrowRight: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex < tabs.length - 1) {
         setActiveTab(tabs[currentIndex + 1]);
@@ -119,6 +120,13 @@ const Index = () => {
       icon: BarChart3,
       action: () => handleTabChange('analytics'),
       description: 'View your learning progress and statistics'
+    },
+    {
+      id: 'flashcards',
+      label: 'Flashcards',
+      icon: BookOpen,
+      action: () => handleTabChange('flashcards'),
+      description: 'Generate flashcards from your notes'
     }
   ];
 
@@ -160,6 +168,8 @@ const Index = () => {
           return <LoadingSkeleton variant="list" count={3} />;
         case 'analytics':
           return <LoadingSkeleton variant="analytics" />;
+        case 'flashcards':
+          return <LoadingSkeleton variant="list" count={3} />;
         default:
           return <LoadingSkeleton variant="card" />;
       }
@@ -205,6 +215,12 @@ const Index = () => {
               badges={badges}
               onSetDailyGoal={setDailyGoal}
             />
+          </SlideIn>
+        );
+      case 'flashcards':
+        return (
+          <SlideIn direction="up" delay={100}>
+            <FlashcardGenerator />
           </SlideIn>
         );
       default:
