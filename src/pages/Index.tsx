@@ -6,12 +6,10 @@ import NotesGenerator from '@/components/NotesGenerator';
 import SavedNotes from '@/components/SavedNotes';
 import MCQGenerator from '@/components/MCQGenerator';
 import MCQViewer from '@/components/MCQViewer';
-import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import FlashcardGenerator from '@/components/FlashcardGenerator';
-import { Brain, FileText, BookOpen, Target, Menu, BarChart3 } from 'lucide-react';
+import { Brain, FileText, BookOpen, Target, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
-import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { EnhancedTooltip } from '@/components/ui/enhanced-tooltip';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { FadeIn, SlideIn, HoverCard } from '@/components/ui/micro-interactions';
@@ -26,34 +24,23 @@ import {
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
-  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'analytics' | 'flashcards'>('mcqs');
+  const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'flashcards'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const navigate = useNavigate();
-
-  const {
-    streak,
-    dailyGoal,
-    todayProgress,
-    accuracyHistory,
-    weakTopics,
-    studyTime,
-    badges,
-    setDailyGoal
-  } = useAnalytics();
 
   // Keyboard navigation
   useKeyboardNavigation({
     onEscape: () => setMobileMenuOpen(false),
     onArrowLeft: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex > 0) {
         setActiveTab(tabs[currentIndex - 1]);
       }
     },
     onArrowRight: () => {
-      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'analytics', 'flashcards'] as const;
+      const tabs = ['mcqs', 'notes-generator', 'saved-notes', 'flashcards'] as const;
       const currentIndex = tabs.indexOf(activeTab);
       if (currentIndex < tabs.length - 1) {
         setActiveTab(tabs[currentIndex + 1]);
@@ -85,6 +72,7 @@ const Index = () => {
     return 'User';
   };
 
+  // Move flashcards between generator and notes
   const navigationItems = [
     {
       id: 'practice',
@@ -101,6 +89,13 @@ const Index = () => {
       description: 'Generate custom multiple choice questions'
     },
     {
+      id: 'flashcards',
+      label: 'Flashcards',
+      icon: BookOpen,
+      action: () => handleTabChange('flashcards'),
+      description: 'Generate flashcards from your notes'
+    },
+    {
       id: 'notes-generator',
       label: 'Notes',
       icon: FileText,
@@ -113,20 +108,6 @@ const Index = () => {
       icon: BookOpen,
       action: () => handleTabChange('saved-notes'),
       description: 'Access your previously saved notes'
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: BarChart3,
-      action: () => handleTabChange('analytics'),
-      description: 'View your learning progress and statistics'
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: BookOpen,
-      action: () => handleTabChange('flashcards'),
-      description: 'Generate flashcards from your notes'
     }
   ];
 
@@ -166,8 +147,6 @@ const Index = () => {
           return <LoadingSkeleton variant="notes" />;
         case 'saved-notes':
           return <LoadingSkeleton variant="list" count={3} />;
-        case 'analytics':
-          return <LoadingSkeleton variant="analytics" />;
         case 'flashcards':
           return <LoadingSkeleton variant="list" count={3} />;
         default:
@@ -199,22 +178,6 @@ const Index = () => {
         return (
           <SlideIn direction="up" delay={100}>
             <SavedNotes />
-          </SlideIn>
-        );
-      case 'analytics':
-        return (
-          <SlideIn direction="up" delay={100}>
-            <AnalyticsDashboard
-              userId={user.id}
-              streak={streak}
-              dailyGoal={dailyGoal}
-              todayProgress={todayProgress}
-              accuracyHistory={accuracyHistory}
-              weakTopics={weakTopics}
-              studyTime={studyTime}
-              badges={badges}
-              onSetDailyGoal={setDailyGoal}
-            />
           </SlideIn>
         );
       case 'flashcards':
@@ -286,9 +249,6 @@ const Index = () => {
                       <p className="text-sm font-medium text-gray-900">
                         {getNickname()}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {streak} day streak • {todayProgress}/{dailyGoal} today
-                      </p>
                     </div>
                   </SlideIn>
                 </div>
@@ -315,9 +275,6 @@ const Index = () => {
                           <div className="text-center pb-6 border-b border-gray-200">
                             <p className="text-lg font-semibold text-gray-900">
                               {getNickname()}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {streak} day streak • {todayProgress}/{dailyGoal} completed today
                             </p>
                           </div>
                         </FadeIn>
