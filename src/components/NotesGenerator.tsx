@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText, RefreshCw, Download, ExternalLink, Scissors, AlertTriangle, Zap } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
 const NotesGenerator = () => {
   const [inputText, setInputText] = useState('');
@@ -92,8 +93,13 @@ const NotesGenerator = () => {
           topP: 0.95,
           maxOutputTokens: 2048,
         }
-      })
+      }),
     });
+    // --- Gemini Usage Tracking ---
+    // Estimate tokens used: input + output (rough estimate)
+    const inputTokens = chunk.length / 4; // 1 token ≈ 4 chars (rough)
+    const outputTokens = 2048; // maxOutputTokens or estimate
+    incrementGeminiUsage(Math.round(inputTokens + outputTokens));
 
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status}`);

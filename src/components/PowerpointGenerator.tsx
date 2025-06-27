@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Download, FileText, Sparkles } from 'lucide-react';
+import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
 // @ts-ignore
 import pptxgen from 'pptxgenjs';
@@ -76,6 +77,11 @@ const PowerpointGenerator = () => {
           });
         if (!response.ok) throw new Error('Failed to generate slides');
         const data = await response.json();
+        // --- Gemini Usage Tracking ---
+        // Estimate tokens used: input + output (rough estimate)
+        const inputTokens = chunk.length / 4; // 1 token ≈ 4 chars (rough)
+        const outputTokens = 1024; // maxOutputTokens
+        incrementGeminiUsage(Math.round(inputTokens + outputTokens));
         const slidesText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         // Robust JSON extraction and parsing
         let slidesJson = [];

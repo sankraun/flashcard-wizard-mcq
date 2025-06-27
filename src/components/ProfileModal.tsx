@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -10,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Trophy, Target, Calendar, Award, LogOut } from 'lucide-react';
-import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { LogOut } from 'lucide-react';
+import { getGeminiUsage } from '@/lib/geminiUsage';
 
 interface ProfileModalProps {
   user: any;
@@ -46,27 +45,12 @@ const getUserDisplayName = (user: any) => {
 };
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onSignOut }) => {
-  const {
-    streak,
-    dailyGoal,
-    todayProgress,
-    accuracyHistory,
-    weakTopics,
-    studyTime,
-    badges
-  } = useAnalytics();
+  // --- API Token Usage Section ---
+  // For demonstration, use static values. Replace with real values if available.
+  const { used: apiTokenUsed, limit: apiTokenLimit, left: apiTokenLeft } = getGeminiUsage();
 
   const displayName = getUserDisplayName(user);
   const userEmail = user?.email || '';
-  const averageAccuracy = accuracyHistory.length > 0 
-    ? Math.round(accuracyHistory.reduce((sum, item) => sum + item.accuracy, 0) / accuracyHistory.length)
-    : 0;
-
-  const totalStudyMinutes = Array.isArray(studyTime) 
-    ? studyTime.reduce((sum, item) => sum + item.minutes, 0)
-    : typeof studyTime === 'number' ? studyTime : 0;
-  const totalStudyHours = Math.floor(totalStudyMinutes / 60);
-  const remainingMinutes = totalStudyMinutes % 60;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -101,103 +85,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onSi
 
           <Separator />
 
-          {/* Stats Section */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-yellow-600" />
-              Your Stats
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {/* Current Streak */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg border border-orange-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="w-4 h-4 text-orange-600" />
-                  <span className="text-xs font-medium text-orange-700">Current Streak</span>
-                </div>
-                <p className="text-lg font-bold text-orange-800">{streak} days</p>
-              </div>
-
-              {/* Daily Goal Progress */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Target className="w-4 h-4 text-green-600" />
-                  <span className="text-xs font-medium text-green-700">Today's Goal</span>
-                </div>
-                <p className="text-lg font-bold text-green-800">{todayProgress}/{dailyGoal}</p>
-              </div>
-
-              {/* Average Accuracy */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg border border-purple-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Award className="w-4 h-4 text-purple-600" />
-                  <span className="text-xs font-medium text-purple-700">Accuracy</span>
-                </div>
-                <p className="text-lg font-bold text-purple-800">{averageAccuracy}%</p>
-              </div>
-
-              {/* Study Time */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <User className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-medium text-blue-700">Study Time</span>
-                </div>
-                <p className="text-lg font-bold text-blue-800">
-                  {totalStudyHours}h {remainingMinutes}m
-                </p>
-              </div>
+          {/* API Token Usage Section */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-medium text-gray-700">API Token Usage</span>
             </div>
+            <p className="text-sm font-semibold text-gray-800">
+              Used: <span className="text-blue-700">{apiTokenUsed}</span> / <span className="text-gray-700">{apiTokenLimit}</span>
+              <span className="ml-2 text-xs text-green-700">({apiTokenLeft} left)</span>
+            </p>
           </div>
-
-          {/* Badges Section */}
-          {badges.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-yellow-600" />
-                  Achievements ({badges.length})
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {badges.slice(0, 6).map((badge, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="outline" 
-                      className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200"
-                    >
-                      {badge}
-                    </Badge>
-                  ))}
-                  {badges.length > 6 && (
-                    <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600">
-                      +{badges.length - 6} more
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Weak Topics Section */}
-          {weakTopics.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900">Areas to Improve</h3>
-                <div className="flex flex-wrap gap-2">
-                  {weakTopics.slice(0, 4).map((topic, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="outline" 
-                      className="text-xs bg-red-50 text-red-700 border-red-200"
-                    >
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
 
           <Separator />
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Brain, RefreshCw, Wand2, FileText, Scissors, Zap, AlertTriangle } from 'lucide-react';
+import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
 interface MCQGeneratorProps {
   onMCQsGenerated: () => void;
@@ -78,21 +78,16 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
         body: JSON.stringify({
           contents: [
             {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
+              text: prompt,
+            },
           ],
-          generationConfig: {
-            temperature: 0.3,
-            topK: 20,
-            topP: 0.8,
-            maxOutputTokens: 50,
-          }
-        })
+        }),
       });
+      // --- Gemini Usage Tracking ---
+      // Estimate tokens used: input + output (rough estimate)
+      const inputTokens = prompt.length / 4; // 1 token ≈ 4 chars (rough)
+      const outputTokens = 50; // maxOutputTokens or estimate
+      incrementGeminiUsage(Math.round(inputTokens + outputTokens));
 
       if (!response.ok) {
         throw new Error('Failed to generate chapter name');
@@ -170,6 +165,11 @@ const MCQGenerator = ({ onMCQsGenerated }: MCQGeneratorProps) => {
         }
       })
     });
+    // --- Gemini Usage Tracking ---
+    // Estimate tokens used: input + output (rough estimate)
+    const inputTokens = chunk.length / 4; // 1 token ≈ 4 chars (rough)
+    const outputTokens = 2048; // maxOutputTokens or estimate
+    incrementGeminiUsage(Math.round(inputTokens + outputTokens));
 
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status}`);

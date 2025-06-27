@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Trash2, Calendar, Filter, Brain } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
 interface Note {
   id: string;
@@ -161,8 +161,13 @@ const SavedNotes = () => {
               topP: 0.95,
               maxOutputTokens: 2048,
             }
-          })
+          }),
         });
+        // --- Gemini Usage Tracking ---
+        // Estimate tokens used: input + output (rough estimate)
+        const inputTokens = chunk.length / 4; // 1 token ≈ 4 chars (rough)
+        const outputTokens = 2048; // maxOutputTokens or estimate
+        incrementGeminiUsage(Math.round(inputTokens + outputTokens));
 
         if (!response.ok) {
           throw new Error(`API request failed for part ${i + 1}: ${response.status}`);
