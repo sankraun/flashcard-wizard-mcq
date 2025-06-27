@@ -9,7 +9,7 @@ import { Download, FileText, Sparkles } from 'lucide-react';
 // @ts-ignore
 import pptxgen from 'pptxgenjs';
 
-const GEMINI_API_KEY = 'AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y';
+const GEMINI_API_KEY = 'AIzaSyC2B0CGruME7Z5AVq7uU8oXzTej5ZiTFaM';
 
 const PowerpointGenerator = () => {
   const [inputText, setInputText] = useState('');
@@ -21,7 +21,7 @@ const PowerpointGenerator = () => {
   const [pptxFilename, setPptxFilename] = useState<string>('slides.pptx');
 
   // Helper to split long text into chunks for Gemini API
-  const MAX_CHUNK_SIZE = 3500;
+  const MAX_CHUNK_SIZE = 2200; // Increased for more reliable Gemini responses
   function splitTextIntoChunks(text: string): string[] {
     if (text.length <= MAX_CHUNK_SIZE) return [text];
     const chunks = [];
@@ -33,7 +33,7 @@ const PowerpointGenerator = () => {
         const lastPeriod = text.lastIndexOf('.', end);
         const lastNewline = text.lastIndexOf('\n', end);
         const breakPoint = Math.max(lastPeriod, lastNewline);
-        if (breakPoint > start + 1000) end = breakPoint + 1;
+        if (breakPoint > start + 500) end = breakPoint + 1;
       }
       chunks.push(text.slice(start, end));
       start = end;
@@ -64,7 +64,7 @@ const PowerpointGenerator = () => {
         setCurrentChunk(i + 1);
         const chunk = textChunks[i];
         // Improved prompt for structure, no repetition, and comprehensive slides
-        const prompt = `You are an expert presentation designer. Create a highly structured, non-redundant PowerPoint outline from the following text.\n- Use clear, non-repetitive slide titles.\n- Group related points under the same slide.\n- Avoid repeating topics or slide titles across all slides.\n- Each slide should have a concise title and 3-7 bullet points.\n- Each bullet point should be detailed, explanatory, and self-contained, not just a phrase.\n- Make each bullet at least 15 words long, so it is easy to understand for someone new to the topic.\n- Cover all important concepts, but do not duplicate content from previous slides.\n- Return JSON in this format: [{title: string, bullets: string[]}].\nText: ${chunk}`;
+        const prompt = `You are an expert presentation designer. Create a highly structured, non-redundant PowerPoint outline from the following text.\n- Use clear, non-repetitive slide titles.\n- Group related points under the same slide.\n- Avoid repeating topics or slide titles across all slides.\n- Each slide should have a concise title and 3-7 bullet points.\n- Each bullet point should be explanatory, and self-contained, not just a phrase.\n- Make each bullet at least 7-9 words long, so it is easy to understand for someone new to the topic.\n- Cover all important concepts, but do not duplicate content from previous slides.\n- Return JSON in this format: [{title: string, bullets: string[]}].\nText: ${chunk}`;
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
             method: 'POST',
@@ -83,14 +83,26 @@ const PowerpointGenerator = () => {
           // Try to extract the JSON array from the response
           let jsonMatch = slidesText.match(/\[.*\]/s);
           let jsonString = jsonMatch ? jsonMatch[0] : '[]';
-          // Attempt to fix common JSON issues
+          // Remove trailing commas before ] or } (even inside nested arrays)
           jsonString = jsonString
-            .replace(/,\s*\]/g, ']') // Remove trailing commas before ]
-            .replace(/,\s*\}/g, '}') // Remove trailing commas before }
+            .replace(/,\s*([\]\}])/g, '$1') // Remove trailing commas before ] or }
             .replace(/\n/g, ' '); // Remove newlines
-          slidesJson = JSON.parse(jsonString);
+          // Remove any text after the last closing bracket
+          const lastBracket = Math.max(jsonString.lastIndexOf(']'), jsonString.lastIndexOf('}'));
+          if (lastBracket !== -1) jsonString = jsonString.slice(0, lastBracket + 1);
+          // If the string is just '[' or too short, treat as empty array
+          if (jsonString.trim() === '[' || jsonString.trim().length < 4) {
+            slidesJson = [];
+          } else {
+            slidesJson = JSON.parse(jsonString);
+          }
         } catch (e) {
           console.error('Failed to parse Gemini JSON:', slidesText, e);
+          toast({
+            title: 'AI JSON Error',
+            description: `Gemini returned invalid JSON. Raw output: ${slidesText.slice(0, 500)}...`,
+            variant: 'destructive',
+          });
           throw new Error('AI response was not valid JSON. Please try again or reduce input size.');
         }
         if (!Array.isArray(slidesJson) || slidesJson.length === 0) throw new Error('No slides generated for part ' + (i + 1));
@@ -131,22 +143,22 @@ const PowerpointGenerator = () => {
             bold: true, color: '2B3674', align: 'left', fontFace: 'Segoe UI', margin: 0.1
           });
           slideObj.addShape('rect', { x: 0.7, y: 1.2, w: 0.15, h: Math.max(0.5 * bullets.length, 2.5), fill: { color: '6C63FF' }, line: { color: 'FFFFFF', width: 0 } });
-          // Decrease base font size for all bullets and titles
-          let fontSize = 16; // was 20
-          let bulletSpacing = 0.45; // was 0.55
+          // Decrease base font size for all bullets and increase spacing
+          let fontSize = 13; // Decreased font size
+          let bulletSpacing = 0.6; // Increased spacing for better readability
           if (bullets.length > 5) {
-            fontSize = 14;
-            bulletSpacing = 0.38;
+            fontSize = 12;
+            bulletSpacing = 0.5;
           }
           if (bullets.length > 6) {
-            fontSize = 12;
-            bulletSpacing = 0.32;
+            fontSize = 11;
+            bulletSpacing = 0.42;
           }
           const bulletStartY = 1.2;
           bullets.forEach((bullet, idx) => {
             // If bullet is very long, reduce font size for that bullet
             let thisFontSize = fontSize;
-            if (bullet.length > 120) thisFontSize = Math.max(fontSize - 2, 10);
+            if (bullet.length > 120) thisFontSize = Math.max(fontSize - 2, 9);
             slideObj.addText(bullet, {
               x: 1.0,
               y: bulletStartY + idx * bulletSpacing,
@@ -158,7 +170,7 @@ const PowerpointGenerator = () => {
               bullet: true,
               align: 'left',
               margin: 0.1,
-              lineSpacing: 20
+              lineSpacing: 24
             });
           });
           // Footer with slide number (across all generated slides)
