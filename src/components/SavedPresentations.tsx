@@ -1,60 +1,69 @@
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Presentation, Download, Trash2, Calendar, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { FileText, Trash2, Download, Calendar, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
-// @ts-ignore
-import pptxgen from 'pptxgenjs';
+interface PresentationSlide {
+  title: string;
+  bullets: string[];
+}
+
+interface PresentationContent {
+  slides: PresentationSlide[];
+}
 
 interface Presentation {
   id: string;
   title: string;
-  content: {
-    slides: { title: string; bullets: string[] }[];
-  };
+  content: PresentationContent;
+  file_url: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 const SavedPresentations = () => {
   const { user } = useAuth();
   const [presentations, setPresentations] = useState<Presentation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedPresentation, setSelectedPresentation] = useState<Presentation | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadPresentations();
+      fetchPresentations();
     }
   }, [user]);
 
-  const loadPresentations = async () => {
-    if (!user) return;
-
+  const fetchPresentations = async () => {
     try {
       const { data, error } = await supabase
         .from('powerpoint_presentations')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPresentations(data || []);
+
+      const typedPresentations: Presentation[] = data?.map(item => ({
+        ...item,
+        content: item.content as PresentationContent
+      })) || [];
+
+      setPresentations(typedPresentations);
     } catch (error) {
-      console.error('Error loading presentations:', error);
+      console.error('Error fetching presentations:', error);
       toast({
-        title: 'Loading Error',
-        description: 'Failed to load your presentations.',
-        variant: 'destructive'
+        title: 'Error',
+        description: 'Failed to load presentations',
+        variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -67,216 +76,164 @@ const SavedPresentations = () => {
 
       if (error) throw error;
 
-      setPresentations(prev => prev.filter(p => p.id !== id));
+      setPresentations(presentations.filter(p => p.id !== id));
       toast({
-        title: 'Deleted',
-        description: 'Presentation deleted successfully.'
+        title: 'Success',
+        description: 'Presentation deleted successfully',
       });
     } catch (error) {
       console.error('Error deleting presentation:', error);
       toast({
-        title: 'Delete Error',
-        description: 'Failed to delete presentation.',
-        variant: 'destructive'
+        title: 'Error',
+        description: 'Failed to delete presentation',
+        variant: 'destructive',
       });
     }
   };
 
   const downloadPresentation = async (presentation: Presentation) => {
     try {
-      const pptxInstance = new pptxgen();
-      
-      presentation.content.slides.forEach((slide, index) => {
-        const slideObj = pptxInstance.addSlide();
-        slideObj.background = { fill: 'FFFFFF' };
-        
-        // Professional header
-        slideObj.addShape('rect', { 
-          x: 0, y: 0, w: 10, h: 0.5, 
-          fill: { type: 'solid', color: '6366F1' }, 
-          line: { color: 'FFFFFF', width: 0 } 
-        });
-        
-        slideObj.addText(slide.title, {
-          x: 0.5, y: 0.7, w: 9, h: 1,
-          fontSize: 28, bold: true, color: '1E293B', 
-          align: 'left', fontFace: 'Segoe UI'
-        });
-        
-        // Accent line
-        slideObj.addShape('rect', { 
-          x: 0.5, y: 1.8, w: 0.1, h: Math.max(0.4 * slide.bullets.length, 3), 
-          fill: { color: '6366F1' }, line: { color: 'FFFFFF', width: 0 } 
-        });
-        
-        const bulletStartY = 2.0;
-        slide.bullets.forEach((bullet, idx) => {
-          slideObj.addText(bullet, {
-            x: 0.8, y: bulletStartY + idx * 0.7, w: 8.5, h: 0.6,
-            fontSize: 16, color: '334155', fontFace: 'Segoe UI',
-            bullet: true, align: 'left'
-          });
-        });
-        
-        slideObj.addText('Generated by Neutron AI', {
-          x: 0, y: 7.2, w: 10, h: 0.3,
-          fontSize: 10, color: '94A3B8', align: 'center', fontFace: 'Segoe UI'
-        });
-      });
-      
-      const blob = await pptxInstance.write('blob' as any);
-      const realBlob = blob instanceof Blob ? blob : new Blob([blob]);
-      const url = URL.createObjectURL(realBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${presentation.title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}.pptx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Create a simple text representation for download
+      const content = `# ${presentation.title}\n\n` + 
+        presentation.content.slides.map((slide, index) => 
+          `## Slide ${index + 1}: ${slide.title}\n${slide.bullets.map(bullet => `• ${bullet}`).join('\n')}\n`
+        ).join('\n');
+
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${presentation.title}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast({
-        title: 'Downloaded',
-        description: 'Presentation downloaded successfully!'
-      });
     } catch (error) {
       console.error('Error downloading presentation:', error);
       toast({
-        title: 'Download Error',
-        description: 'Failed to download presentation.',
-        variant: 'destructive'
+        title: 'Error',
+        description: 'Failed to download presentation',
+        variant: 'destructive',
       });
     }
   };
 
-  const openPreview = (presentation: Presentation) => {
-    setSelectedPresentation(presentation);
-    setIsPreviewOpen(true);
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <Card className="max-w-4xl mx-auto">
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading your presentations...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <Card className="shadow-lg border-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl">
-            <FileText className="w-8 h-8" />
-            Your Presentation Library
-          </CardTitle>
-          <p className="text-indigo-100">
-            {presentations.length} saved presentations ready for download
-          </p>
-        </CardHeader>
-      </Card>
-
-      {presentations.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">No Presentations Yet</h3>
-            <p className="text-slate-500">Generate your first presentation to see it here.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {presentations.map((presentation) => (
-            <Card key={presentation.id} className="shadow-lg hover:shadow-xl transition-all duration-200 border-0 bg-white">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                <CardTitle className="text-lg font-bold text-slate-800 line-clamp-2">
-                  {presentation.title}
-                </CardTitle>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Calendar className="w-4 h-4" />
-                  {new Date(presentation.created_at).toLocaleDateString()}
-                </div>
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                <div className="h-3 bg-slate-200 rounded w-1/2"></div>
               </CardHeader>
-              
-              <CardContent className="p-4 space-y-4">
-                <div className="text-sm text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <span>{presentation.content.slides.length} slides</span>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => openPreview(presentation)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Preview
-                  </Button>
-                  <Button
-                    onClick={() => downloadPresentation(presentation)}
-                    size="sm"
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button
-                    onClick={() => deletePresentation(presentation.id)}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-200 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-200 rounded"></div>
+                  <div className="h-3 bg-slate-200 rounded w-5/6"></div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              {selectedPresentation?.title}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedPresentation && (
-            <div className="space-y-6 mt-4">
-              {selectedPresentation.content.slides.map((slide, index) => (
-                <div key={index} className="border-2 border-slate-200 rounded-xl p-6 bg-gradient-to-r from-white to-slate-50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-800">{slide.title}</h3>
-                  </div>
-                  <ul className="space-y-2 text-slate-700 ml-4">
-                    {slide.bullets.map((bullet, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="leading-relaxed">{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
+  if (presentations.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card className="text-center py-12">
+          <CardContent>
+            <Presentation className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+            <h3 className="text-xl font-semibold mb-2">No presentations yet</h3>
+            <p className="text-slate-500 mb-6">
+              Create your first PowerPoint presentation to see it here.
+            </p>
+            <Button variant="outline">
+              Create Presentation
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 animate-fade-in">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Saved Presentations</h2>
+        <p className="text-slate-600">
+          Manage and download your generated PowerPoint presentations
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {presentations.map((presentation) => (
+          <Card key={presentation.id} className="hover:shadow-lg transition-shadow duration-300 group">
+            <CardHeader>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Presentation className="w-5 h-5 text-blue-600" />
                 </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg truncate group-hover:text-blue-600 transition-colors">
+                    {presentation.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    <span className="text-xs text-slate-500">
+                      {format(new Date(presentation.created_at), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" />
+                  {presentation.content.slides.length} slides
+                </Badge>
+              </div>
+              
+              <div className="text-sm text-slate-600">
+                {presentation.content.slides.slice(0, 2).map((slide, idx) => (
+                  <div key={idx} className="mb-1 truncate">
+                    • {slide.title}
+                  </div>
+                ))}
+                {presentation.content.slides.length > 2 && (
+                  <div className="text-xs text-slate-400">
+                    +{presentation.content.slides.length - 2} more slides
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  onClick={() => downloadPresentation(presentation)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => deletePresentation(presentation.id)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
