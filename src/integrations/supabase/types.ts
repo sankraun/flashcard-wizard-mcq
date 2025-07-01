@@ -160,6 +160,89 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcard_reviews: {
+        Row: {
+          difficulty_rating: string
+          flashcard_id: string
+          id: string
+          review_date: string
+          user_id: string
+          was_correct: boolean
+        }
+        Insert: {
+          difficulty_rating: string
+          flashcard_id: string
+          id?: string
+          review_date?: string
+          user_id: string
+          was_correct: boolean
+        }
+        Update: {
+          difficulty_rating?: string
+          flashcard_id?: string
+          id?: string
+          review_date?: string
+          user_id?: string
+          was_correct?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_reviews_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcards: {
+        Row: {
+          answer: string
+          correct_count: number
+          created_at: string
+          difficulty: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          next_review_date: string
+          question: string
+          review_count: number
+          source_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          correct_count?: number
+          created_at?: string
+          difficulty?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          next_review_date?: string
+          question: string
+          review_count?: number
+          source_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          correct_count?: number
+          created_at?: string
+          difficulty?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          next_review_date?: string
+          question?: string
+          review_count?: number
+          source_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard_entries: {
         Row: {
           accuracy_percentage: number
@@ -301,6 +384,36 @@ export type Database = {
           created_at?: string
           id?: string
           original_text?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      powerpoint_presentations: {
+        Row: {
+          content: Json
+          created_at: string
+          file_url: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          file_url?: string | null
+          id?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -570,7 +683,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_flashcard_review: {
+        Args: {
+          p_flashcard_id: string
+          p_was_correct: boolean
+          p_difficulty_rating: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
