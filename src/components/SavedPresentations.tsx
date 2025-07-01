@@ -51,7 +51,7 @@ const SavedPresentations = () => {
 
       const typedPresentations: Presentation[] = data?.map(item => ({
         ...item,
-        content: item.content as PresentationContent
+        content: item.content as unknown as PresentationContent
       })) || [];
 
       setPresentations(typedPresentations);
