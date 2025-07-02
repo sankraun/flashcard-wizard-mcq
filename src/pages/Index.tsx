@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,9 +16,12 @@ import AvatarDropdown from '../components/AvatarDropdown';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    signOut
+  } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
   const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'powerpoint' | 'presentations' | 'flashcards' | 'practice'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,11 +47,9 @@ const Index = () => {
     },
     enabled: !mobileMenuOpen
   });
-
   const handleMCQsGenerated = () => {
     setRefreshMCQs(prev => prev + 1);
   };
-
   const handleTabChange = (newTab: typeof activeTab) => {
     setContentLoading(true);
     setTimeout(() => {
@@ -57,7 +57,6 @@ const Index = () => {
       setContentLoading(false);
     }, 150);
   };
-
   const getNickname = () => {
     if (!user) return '';
     if (user.user_metadata && user.user_metadata.nickname) {
@@ -68,74 +67,61 @@ const Index = () => {
     }
     return 'User';
   };
-
-  const navigationItems = [
-    {
-      id: 'practice',
-      label: 'Practice',
-      icon: Target,
-      action: () => navigate('/mcq-practice'),
-      description: 'Test your knowledge'
-    },
-    {
-      id: 'mcqs',
-      label: 'MCQ Generator',
-      icon: Brain,
-      action: () => handleTabChange('mcqs'),
-      description: 'Generate questions'
-    },
-    {
-      id: 'notes-generator',
-      label: 'Smart Notes',
-      icon: FileText,
-      action: () => handleTabChange('notes-generator'),
-      description: 'Create study notes'
-    },
-    {
-      id: 'saved-notes',
-      label: 'Notes Library',
-      icon: BookOpen,
-      action: () => handleTabChange('saved-notes'),
-      description: 'View saved notes'
-    },
-    {
-      id: 'powerpoint',
-      label: 'PowerPoint',
-      icon: Sparkles,
-      action: () => handleTabChange('powerpoint'),
-      description: 'Create slides'
-    },
-    {
-      id: 'presentations',
-      label: 'Presentations',
-      icon: History,
-      action: () => handleTabChange('presentations'),
-      description: 'View presentations'
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: Zap,
-      action: () => handleTabChange('flashcards'),
-      description: 'Generate flashcards'
-    },
-    {
-      id: 'practice-flashcards',
-      label: 'Study Session',
-      icon: Timer,
-      action: () => handleTabChange('practice'),
-      description: 'Practice flashcards'
-    }
-  ];
-
+  const navigationItems = [{
+    id: 'practice',
+    label: 'Practice',
+    icon: Target,
+    action: () => navigate('/mcq-practice'),
+    description: 'Test your knowledge'
+  }, {
+    id: 'mcqs',
+    label: 'MCQ Generator',
+    icon: Brain,
+    action: () => handleTabChange('mcqs'),
+    description: 'Generate questions'
+  }, {
+    id: 'notes-generator',
+    label: 'Smart Notes',
+    icon: FileText,
+    action: () => handleTabChange('notes-generator'),
+    description: 'Create study notes'
+  }, {
+    id: 'saved-notes',
+    label: 'Notes Library',
+    icon: BookOpen,
+    action: () => handleTabChange('saved-notes'),
+    description: 'View saved notes'
+  }, {
+    id: 'powerpoint',
+    label: 'PowerPoint',
+    icon: Sparkles,
+    action: () => handleTabChange('powerpoint'),
+    description: 'Create slides'
+  }, {
+    id: 'presentations',
+    label: 'Presentations',
+    icon: History,
+    action: () => handleTabChange('presentations'),
+    description: 'View presentations'
+  }, {
+    id: 'flashcards',
+    label: 'Flashcards',
+    icon: Zap,
+    action: () => handleTabChange('flashcards'),
+    description: 'Generate flashcards'
+  }, {
+    id: 'practice-flashcards',
+    label: 'Study Session',
+    icon: Timer,
+    action: () => handleTabChange('practice'),
+    description: 'Practice flashcards'
+  }];
   const handleNavItemClick = (item: typeof navigationItems[0]) => {
     item.action();
     setMobileMenuOpen(false);
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <div className="space-y-2">
@@ -143,24 +129,19 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">Preparing your workspace...</p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
     return <AuthPage />;
   }
-
   const renderContent = () => {
     if (contentLoading) {
       switch (activeTab) {
         case 'mcqs':
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LoadingSkeleton variant="mcq" />
               <LoadingSkeleton variant="mcq" />
-            </div>
-          );
+            </div>;
         case 'notes-generator':
           return <LoadingSkeleton variant="notes" />;
         case 'saved-notes':
@@ -174,19 +155,16 @@ const Index = () => {
           return <LoadingSkeleton variant="card" />;
       }
     }
-
     switch (activeTab) {
       case 'mcqs':
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
             </div>
             <div>
               <MCQViewer key={refreshMCQs} />
             </div>
-          </div>
-        );
+          </div>;
       case 'notes-generator':
         return <NotesGenerator />;
       case 'saved-notes':
@@ -203,9 +181,7 @@ const Index = () => {
         return null;
     }
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Clean, professional header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -215,32 +191,19 @@ const Index = () => {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-semibold text-foreground">Neutron AI</h1>
+              <h1 className="text-xl font-semibold text-foreground">Neutron </h1>
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
-              {navigationItems.slice(0, 6).map((item) => (
-                <Button
-                  key={item.id}
-                  variant={
-                    (item.id === 'practice' && false) || 
-                    (item.id !== 'practice' && activeTab === item.id) 
-                      ? "default" 
-                      : "ghost"
-                  }
-                  size="sm"
-                  onClick={item.action}
-                  className="text-sm font-medium hover-lift"
-                >
+              {navigationItems.slice(0, 6).map(item => <Button key={item.id} variant={item.id === 'practice' && false || item.id !== 'practice' && activeTab === item.id ? "default" : "ghost"} size="sm" onClick={item.action} className="text-sm font-medium hover-lift">
                   <item.icon className="w-4 h-4 mr-2" />
                   {item.label}
-                </Button>
-              ))}
+                </Button>)}
             </nav>
 
             {/* User Profile & Mobile Menu */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 mx-0 px-0">
               <div className="hidden md:flex items-center space-x-3">
                 <span className="text-sm text-muted-foreground">
                   Welcome, {getNickname()}
@@ -267,13 +230,7 @@ const Index = () => {
                       
                       {/* Mobile navigation */}
                       <nav className="space-y-1">
-                        {navigationItems.map((item) => (
-                          <Button
-                            key={item.id}
-                            variant="ghost"
-                            onClick={() => handleNavItemClick(item)}
-                            className="w-full justify-start text-left"
-                          >
+                        {navigationItems.map(item => <Button key={item.id} variant="ghost" onClick={() => handleNavItemClick(item)} className="w-full justify-start text-left">
                             <item.icon className="w-4 h-4 mr-3" />
                             <div>
                               <div className="font-medium">{item.label}</div>
@@ -281,8 +238,7 @@ const Index = () => {
                                 {item.description}
                               </div>
                             </div>
-                          </Button>
-                        ))}
+                          </Button>)}
                       </nav>
                     </div>
                   </SheetContent>
@@ -299,8 +255,6 @@ const Index = () => {
           {renderContent()}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
