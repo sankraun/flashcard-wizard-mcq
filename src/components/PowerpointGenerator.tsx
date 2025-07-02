@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,8 +68,8 @@ const PowerpointGenerator = () => {
       if (error) throw error;
       
       toast({
-        title: 'Success',
-        description: 'Presentation saved to your library!',
+        title: 'Saved',
+        description: 'Presentation saved successfully',
       });
       
       return data;
@@ -76,7 +77,7 @@ const PowerpointGenerator = () => {
       console.error('Error saving presentation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save presentation to library.',
+        description: 'Failed to save presentation',
         variant: 'destructive',
       });
     }
@@ -84,7 +85,7 @@ const PowerpointGenerator = () => {
 
   const generateSlides = async () => {
     if (!inputText.trim()) {
-      toast({ title: 'Error', description: 'Please paste some text to generate slides.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Please add some content first', variant: 'destructive' });
       return;
     }
     
@@ -248,11 +249,11 @@ const PowerpointGenerator = () => {
       
       toast({ 
         title: 'Success', 
-        description: `Professional presentation generated and saved! ${chunkCount > 1 ? `Processed ${chunkCount} sections.` : ''}` 
+        description: `Presentation created successfully${chunkCount > 1 ? ` (${chunkCount} sections processed)` : ''}` 
       });
       
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message || 'Failed to generate slides.', variant: 'destructive' });
+      toast({ title: 'Error', description: err.message || 'Failed to generate slides', variant: 'destructive' });
     } finally {
       setIsLoading(false);
       setCurrentChunk(0);
@@ -260,116 +261,108 @@ const PowerpointGenerator = () => {
   };
 
   return (
-    <Card className="max-w-4xl mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-slate-50">
-      <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-lg">
-        <CardTitle className="flex items-center gap-3 text-xl font-bold">
-          <div className="p-2 bg-white/20 rounded-lg">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          Professional PowerPoint Generator
-        </CardTitle>
-        <p className="text-indigo-100 mt-2">Transform your content into stunning presentations</p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6 p-8">
-        {pptxUrl && (
-          <div className="flex gap-3 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
-            <a href={pptxUrl} download={pptxFilename} className="flex-1">
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium shadow-md">
-                <Download className="w-5 h-5 mr-2" />
-                Download Professional PPTX
-              </Button>
-            </a>
-            <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
-              <History className="w-5 h-5" />
-            </Button>
-          </div>
-        )}
+    <div className="max-w-4xl mx-auto">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="bg-slate-50 border-b border-slate-100">
+          <CardTitle className="flex items-center gap-3 text-slate-900 text-xl font-medium">
+            <Sparkles className="w-5 h-5 text-slate-600" />
+            PowerPoint Generator
+          </CardTitle>
+        </CardHeader>
         
-        <div className="space-y-3">
-          <Label htmlFor="pptx-input" className="flex items-center gap-2 text-lg font-semibold text-slate-700">
-            <FileText className="w-5 h-5 text-indigo-600" />
-            Paste Your Content
-          </Label>
-          <Textarea
-            id="pptx-input"
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            placeholder="Paste your study material, notes, or any content here to generate professional slides..."
-            className="min-h-[140px] border-2 border-slate-200 focus:border-indigo-500 transition-colors resize-none text-base"
-          />
-          {chunkCount > 1 && (
-            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-              This content will be processed in <span className="font-semibold">{chunkCount} optimized sections</span>
+        <CardContent className="p-6 space-y-6">
+          {pptxUrl && (
+            <div className="flex gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <a href={pptxUrl} download={pptxFilename} className="flex-1">
+                <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Presentation
+                </Button>
+              </a>
             </div>
           )}
-        </div>
-        
-        <Button 
-          onClick={generateSlides} 
-          disabled={isLoading || !inputText.trim()} 
-          className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-3">
-              <div className="animate-spin">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <span>Generating Professional Slides...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5" />
-              <span>Generate Professional Slides</span>
-            </div>
-          )}
-        </Button>
-        
-        {isLoading && chunkCount > 1 && (
-          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 transition-all duration-500 ease-out"
-              style={{ width: `${Math.round((currentChunk / chunkCount) * 100)}%` }}
+          
+          <div className="space-y-3">
+            <Label htmlFor="pptx-input" className="text-slate-700 font-medium">
+              Content
+            </Label>
+            <Textarea
+              id="pptx-input"
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder="Paste your content here to generate slides..."
+              className="min-h-[120px] border-slate-200 focus:border-slate-400 resize-none"
             />
+            {chunkCount > 1 && (
+              <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded border border-slate-100">
+                Will process in {chunkCount} sections
+              </div>
+            )}
           </div>
-        )}
-        
-        {slidesPreview && (
-          <div className="mt-8 border-2 border-slate-200 rounded-xl bg-white shadow-inner">
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 rounded-t-xl border-b">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-800">Presentation Preview</h3>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Save className="w-4 h-4" />
-                  <span>{slidesPreview.length} slides • Saved to library</span>
+          
+          <Button 
+            onClick={generateSlides} 
+            disabled={isLoading || !inputText.trim()} 
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Generating...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Generate Slides
+              </div>
+            )}
+          </Button>
+          
+          {isLoading && chunkCount > 1 && (
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div
+                className="bg-slate-400 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${Math.round((currentChunk / chunkCount) * 100)}%` }}
+              />
+            </div>
+          )}
+          
+          {slidesPreview && (
+            <div className="border border-slate-200 rounded-lg bg-white">
+              <div className="bg-slate-50 p-4 border-b border-slate-200 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-slate-900">Preview</h3>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Save className="w-4 h-4" />
+                    {slidesPreview.length} slides
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-6 max-h-96 overflow-y-auto space-y-6">
-              {slidesPreview.map((slide, idx) => (
-                <div key={idx} className="border-l-4 border-indigo-500 pl-6 py-4 bg-gradient-to-r from-indigo-50/50 to-transparent rounded-r-lg hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                      {idx + 1}
+              <div className="p-4 max-h-80 overflow-y-auto space-y-4">
+                {slidesPreview.map((slide, idx) => (
+                  <div key={idx} className="border-l-2 border-slate-300 pl-4 py-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-sm font-medium">
+                        {idx + 1}
+                      </div>
+                      <h4 className="font-medium text-slate-900">{slide.title}</h4>
                     </div>
-                    <h4 className="text-xl font-bold text-slate-800">{slide.title}</h4>
+                    <ul className="space-y-1 text-sm text-slate-700">
+                      {slide.bullets.map((bullet, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <div className="w-1 h-1 bg-slate-400 rounded-full mt-2 flex-shrink-0"></div>
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2 text-slate-700">
-                    {slide.bullets.map((bullet, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="leading-relaxed">{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
