@@ -15,14 +15,13 @@ import { useNavigate } from 'react-router-dom';
 import AvatarDropdown from '../components/AvatarDropdown';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    signOut
+  } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
   const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'powerpoint' | 'presentations' | 'flashcards' | 'practice'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,13 +45,11 @@ const Index = () => {
         setActiveTab(tabs[currentIndex + 1]);
       }
     },
-    enabled: !mobileMenuOpen,
+    enabled: !mobileMenuOpen
   });
-
   const handleMCQsGenerated = () => {
     setRefreshMCQs(prev => prev + 1);
   };
-
   const handleTabChange = (newTab: typeof activeTab) => {
     setContentLoading(true);
     setTimeout(() => {
@@ -60,7 +57,6 @@ const Index = () => {
       setContentLoading(false);
     }, 150);
   };
-
   const getNickname = () => {
     if (!user) return '';
     if (user.user_metadata && user.user_metadata.nickname) {
@@ -71,105 +67,87 @@ const Index = () => {
     }
     return 'User';
   };
-
-  const navigationItems = [
-    {
-      id: 'practice',
-      label: 'Practice',
-      icon: Target,
-      action: () => navigate('/mcq-practice'),
-      description: 'Take practice quizzes to test your knowledge',
-      color: 'text-green-600'
-    },
-    {
-      id: 'mcqs',
-      label: 'MCQ Generator',
-      icon: Brain,
-      action: () => handleTabChange('mcqs'),
-      description: 'Generate custom multiple choice questions',
-      color: 'text-blue-600'
-    },
-    {
-      id: 'notes-generator',
-      label: 'Smart Notes',
-      icon: FileText,
-      action: () => handleTabChange('notes-generator'),
-      description: 'Create comprehensive study notes',
-      color: 'text-purple-600'
-    },
-    {
-      id: 'saved-notes',
-      label: 'Notes Library',
-      icon: BookOpen,
-      action: () => handleTabChange('saved-notes'),
-      description: 'Access your previously saved notes',
-      color: 'text-indigo-600'
-    },
-    {
-      id: 'powerpoint',
-      label: 'PowerPoint',
-      icon: Sparkles,
-      action: () => handleTabChange('powerpoint'),
-      description: 'Generate professional PowerPoint slides',
-      color: 'text-gradient-to-r from-indigo-600 to-purple-600'
-    },
-    {
-      id: 'presentations',
-      label: 'Presentations',
-      icon: History,
-      action: () => handleTabChange('presentations'),
-      description: 'View and download your saved presentations',
-      color: 'text-slate-600'
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: Zap,
-      action: () => handleTabChange('flashcards'),
-      description: 'Generate smart flashcards for spaced repetition',
-      color: 'text-yellow-600'
-    },
-    {
-      id: 'practice-flashcards',
-      label: 'Study Session',
-      icon: Timer,
-      action: () => handleTabChange('practice'),
-      description: 'Practice with spaced repetition flashcards',
-      color: 'text-red-600'
-    }
-  ];
-
+  const navigationItems = [{
+    id: 'practice',
+    label: 'Practice',
+    icon: Target,
+    action: () => navigate('/mcq-practice'),
+    description: 'Take practice quizzes to test your knowledge',
+    color: 'text-green-600'
+  }, {
+    id: 'mcqs',
+    label: 'MCQ Generator',
+    icon: Brain,
+    action: () => handleTabChange('mcqs'),
+    description: 'Generate custom multiple choice questions',
+    color: 'text-blue-600'
+  }, {
+    id: 'notes-generator',
+    label: 'Smart Notes',
+    icon: FileText,
+    action: () => handleTabChange('notes-generator'),
+    description: 'Create comprehensive study notes',
+    color: 'text-purple-600'
+  }, {
+    id: 'saved-notes',
+    label: 'Notes Library',
+    icon: BookOpen,
+    action: () => handleTabChange('saved-notes'),
+    description: 'Access your previously saved notes',
+    color: 'text-indigo-600'
+  }, {
+    id: 'powerpoint',
+    label: 'PowerPoint',
+    icon: Sparkles,
+    action: () => handleTabChange('powerpoint'),
+    description: 'Generate professional PowerPoint slides',
+    color: 'text-gradient-to-r from-indigo-600 to-purple-600'
+  }, {
+    id: 'presentations',
+    label: 'Presentations',
+    icon: History,
+    action: () => handleTabChange('presentations'),
+    description: 'View and download your saved presentations',
+    color: 'text-slate-600'
+  }, {
+    id: 'flashcards',
+    label: 'Flashcards',
+    icon: Zap,
+    action: () => handleTabChange('flashcards'),
+    description: 'Generate smart flashcards for spaced repetition',
+    color: 'text-yellow-600'
+  }, {
+    id: 'practice-flashcards',
+    label: 'Study Session',
+    icon: Timer,
+    action: () => handleTabChange('practice'),
+    description: 'Practice with spaced repetition flashcards',
+    color: 'text-red-600'
+  }];
   const handleNavItemClick = (item: typeof navigationItems[0]) => {
     item.action();
     setMobileMenuOpen(false);
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-slate-700 mb-2">Loading Neutron AI</h2>
           <p className="text-slate-500">Preparing your intelligent workspace...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
     return <AuthPage />;
   }
-
   const renderContent = () => {
     if (contentLoading) {
       switch (activeTab) {
         case 'mcqs':
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LoadingSkeleton variant="mcq" />
               <LoadingSkeleton variant="mcq" />
-            </div>
-          );
+            </div>;
         case 'notes-generator':
           return <LoadingSkeleton variant="notes" />;
         case 'saved-notes':
@@ -183,19 +161,16 @@ const Index = () => {
           return <LoadingSkeleton variant="card" />;
       }
     }
-
     switch (activeTab) {
       case 'mcqs':
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
             </div>
             <div>
               <MCQViewer key={refreshMCQs} />
             </div>
-          </div>
-        );
+          </div>;
       case 'notes-generator':
         return <NotesGenerator />;
       case 'saved-notes':
@@ -212,11 +187,9 @@ const Index = () => {
         return null;
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl px-4 sm:px-6 lg:px-[44px] mx-[18px] my-[22px] py-0">
           <div className="flex items-center justify-between h-16">
             {/* Professional Logo & Brand */}
             <div className="flex items-center gap-4">
@@ -234,23 +207,13 @@ const Index = () => {
             {/* Desktop Navigation */}
             <div className="hidden lg:block">
               <nav className="flex items-center space-x-1">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={item.action}
-                    className={`
+                {navigationItems.map(item => <button key={item.id} onClick={item.action} className={`
                        flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-md
-                       ${(item.id === 'practice' && false) || 
-                         (item.id !== 'practice' && activeTab === item.id)
-                         ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' 
-                         : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'
-                       }
-                    `}
-                  >
+                       ${item.id === 'practice' && false || item.id !== 'practice' && activeTab === item.id ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'}
+                    `}>
                     <item.icon className={`w-4 h-4 ${item.color}`} />
                     <span>{item.label}</span>
-                  </button>
-                ))}
+                  </button>)}
               </nav>
             </div>
 
@@ -295,19 +258,10 @@ const Index = () => {
                       
                       {/* Mobile navigation */}
                       <nav className="flex flex-col gap-2">
-                        {navigationItems.map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavItemClick(item)}
-                            className={`
+                        {navigationItems.map(item => <button key={item.id} onClick={() => handleNavItemClick(item)} className={`
                              flex items-center gap-4 px-4 py-4 rounded-xl text-left transition-all duration-300 w-full hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md
-                               ${(item.id === 'practice' && false) || 
-                                 (item.id !== 'practice' && activeTab === item.id)
-                                 ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' 
-                                 : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'
-                               }
-                            `}
-                          >
+                               ${item.id === 'practice' && false || item.id !== 'practice' && activeTab === item.id ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'}
+                            `}>
                             <div className="p-2 bg-white rounded-lg shadow-sm">
                               <item.icon className={`w-5 h-5 ${item.color}`} />
                             </div>
@@ -317,8 +271,7 @@ const Index = () => {
                                 {item.description}
                               </p>
                             </div>
-                          </button>
-                        ))}
+                          </button>)}
                       </nav>
                     </div>
                   </SheetContent>
@@ -348,8 +301,6 @@ const Index = () => {
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
