@@ -120,7 +120,7 @@ body {
 }
 
 .card-interactive {
-  @apply bg-card border border-border rounded-xl shadow-soft hover:shadow-elevated transition-all duration-300 hover:border-primary/30 hover:-translate-y-1 cursor-pointer group;
+  @apply bg-card border border-border rounded-xl shadow-soft hover:shadow-elevated transition-all duration-300 hover:border-primary/30 hover:-translate-y-1 cursor-pointer;
 }
 
 .card-elevated {
