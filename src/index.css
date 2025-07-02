@@ -48,7 +48,7 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #f0fdf4 0%, #f0fdfa 50%, #ecfdf5 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
   color: hsl(var(--foreground));
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -91,18 +91,11 @@ body {
   .text-label {
     @apply text-sm font-medium text-slate-700;
   }
-
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
 }
 
 ::selection {
-  background: #dcfce7;
-  color: #166534;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 /* Professional Shadow & Interaction Utilities */
@@ -115,11 +108,11 @@ body {
 }
 
 .card-interactive {
-  @apply bg-white/80 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-soft hover:shadow-card transition-all duration-200 hover:border-gray-300/80;
+  @apply bg-white border border-slate-200 rounded-xl shadow-soft hover:shadow-card transition-all duration-200 hover:border-slate-300;
 }
 
 .card-elevated {
-  @apply bg-white/90 backdrop-blur-sm border border-gray-100/80 rounded-xl shadow-elevated;
+  @apply bg-white border border-slate-100 rounded-xl shadow-elevated backdrop-blur-sm;
 }
 
 .animate-fade-in {
@@ -169,10 +162,10 @@ body {
 
 /* Professional Focus States */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 focus:border-green-500;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 focus:border-blue-500;
 }
 
 /* Glass Effect for Modern Cards */
 .glass-card {
-  @apply bg-white/60 backdrop-blur-md border border-white/30 shadow-glass;
+  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-glass;
 }

@@ -3,189 +3,166 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  Home,
-  BookOpen,
-  Brain,
-  Target,
-  FileText,
-  History,
-  Timer,
-  Zap,
-  Settings,
-  Bell,
-  User
-} from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
+import { Brain, FileText, History, Target, Presentation, Timer, Zap, BookOpen } from 'lucide-react';
+import AvatarDropdown from '@/components/AvatarDropdown';
 
 const AppLayout = () => {
   const { user, signOut } = useAuth();
 
-  const sidebarItems = [
-    { icon: Home, label: 'Home', active: true },
-    { icon: BookOpen, label: 'Courses' },
-    { icon: Brain, label: 'AI Tools' },
-    { icon: Target, label: 'Practice' },
-    { icon: History, label: 'Library' },
-    { icon: Settings, label: 'Settings' },
-  ];
-
-  const getNickname = () => {
-    if (!user) return 'User';
-    if (user.user_metadata && user.user_metadata.nickname) {
-      return user.user_metadata.nickname;
-    }
-    if (user.email) {
-      return user.email.split('@')[0];
-    }
-    return 'User';
-  };
-
-  const getInitials = () => {
-    const nickname = getNickname();
-    return nickname.substring(0, 2).toUpperCase();
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50 flex">
-      {/* Left Sidebar */}
-      <div className="w-20 bg-white/80 backdrop-blur-sm border-r border-gray-200/50 flex flex-col items-center py-6 space-y-4">
-        {/* Logo */}
-        <div className="w-12 h-12 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center mb-6">
-          <Brain className="w-6 h-6 text-white" />
-        </div>
-
-        {/* Navigation Icons */}
-        {sidebarItems.map((item, index) => (
-          <button
-            key={index}
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
-              item.active 
-                ? 'bg-gray-900 text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-            }`}
-          >
-            <item.icon className="w-5 h-5" />
-          </button>
-        ))}
-
-        {/* User Avatar at Bottom */}
-        <div className="mt-auto">
-          <Avatar className="w-12 h-12 border-2 border-white shadow-md">
-            <AvatarImage src={user?.user_metadata?.picture} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Header */}
-        <header className="bg-white/60 backdrop-blur-sm border-b border-gray-200/50 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                Invest in your education
-              </h1>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5 text-gray-600" />
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 p-8">
-          <Outlet />
-        </main>
-      </div>
-
-      {/* Right Sidebar - User Profile */}
-      <div className="w-80 bg-white/60 backdrop-blur-sm border-l border-gray-200/50 p-6">
-        <div className="text-center mb-6">
-          <Avatar className="w-16 h-16 mx-auto mb-3 border-2 border-white shadow-lg">
-            <AvatarImage src={user?.user_metadata?.picture} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <h3 className="font-semibold text-gray-900 text-lg">{getNickname()}</h3>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
-            <User className="w-4 h-4" />
-            <span>274 Friends</span>
-          </div>
-        </div>
-
-        {/* Activity Section */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <h4 className="font-medium text-gray-700">Activity</h4>
-            <span className="text-sm text-gray-500">Year</span>
-          </div>
-          <div className="bg-white/80 rounded-xl p-4">
-            <div className="text-2xl font-bold text-gray-900 mb-1">3.5h</div>
-            <div className="text-sm text-yellow-600 flex items-center gap-1">
-              <span className="text-yellow-500">⭐</span>
-              Great result!
-            </div>
-            {/* Activity Chart Placeholder */}
-            <div className="mt-4 h-20 bg-gradient-to-r from-pink-200 via-purple-200 to-green-200 rounded-lg opacity-60"></div>
-          </div>
-        </div>
-
-        {/* My Courses Section */}
-        <div>
-          <h4 className="font-medium text-gray-700 mb-3">My courses</h4>
-          <div className="space-y-3">
-            <div className="bg-gradient-to-r from-blue-100 to-blue-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="text-xs font-medium text-blue-700">IT & Software</span>
-                <span className="ml-auto text-xs font-bold text-blue-800">4.9</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                <Brain className="w-5 h-5 text-white" />
               </div>
-              <h5 className="font-semibold text-gray-900 text-sm mb-1">
-                Flutter Masterclass (Dart, APIs, Firebase & More)
-              </h5>
-              <p className="text-xs text-gray-600">9,530 students</p>
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Neutron AI
+              </span>
             </div>
 
-            <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-                  <Target className="w-4 h-4 text-orange-600" />
-                </div>
-                <span className="text-xs font-medium text-orange-700">Business</span>
-                <span className="ml-auto text-xs font-bold text-orange-800">4.9</span>
-              </div>
-              <h5 className="font-semibold text-gray-900 text-sm">
-                Business Strategy Course
-              </h5>
+            {/* Navigation */}
+            <NavigationMenu className="hidden lg:flex">
+              <NavigationMenuList className="gap-1">
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-9 px-3 gap-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 data-[state=open]:bg-blue-50/50">
+                    <Target className="w-4 h-4" />
+                    Practice
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="w-72 p-4">
+                      <div className="grid gap-3">
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+                            <Target className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">MCQ Practice</div>
+                            <div className="text-xs text-slate-500">Test your knowledge</div>
+                          </div>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                            <Timer className="w-4 h-4 text-yellow-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">Flashcards</div>
+                            <div className="text-xs text-slate-500">Spaced repetition</div>
+                          </div>
+                        </NavigationMenuLink>
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-9 px-3 gap-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 data-[state=open]:bg-blue-50/50">
+                    <FileText className="w-4 h-4" />
+                    Generate
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="w-72 p-4">
+                      <div className="grid gap-3">
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                            <Brain className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">MCQ Generator</div>
+                            <div className="text-xs text-slate-500">Create questions</div>
+                          </div>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">Smart Notes</div>
+                            <div className="text-xs text-slate-500">Generate notes</div>
+                          </div>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-md flex items-center justify-center">
+                            <Presentation className="w-4 h-4 text-indigo-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">PowerPoint</div>
+                            <div className="text-xs text-slate-500">Create slides</div>
+                          </div>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-orange-100 rounded-md flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">Flashcards</div>
+                            <div className="text-xs text-slate-500">Study cards</div>
+                          </div>
+                        </NavigationMenuLink>
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-9 px-3 gap-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 data-[state=open]:bg-blue-50/50">
+                    <History className="w-4 h-4" />
+                    Library
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="w-72 p-4">
+                      <div className="grid gap-3">
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-md flex items-center justify-center">
+                            <BookOpen className="w-4 h-4 text-indigo-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">Notes</div>
+                            <div className="text-xs text-slate-500">Saved notes</div>
+                          </div>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink className="group flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center">
+                            <Presentation className="w-4 h-4 text-slate-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">Presentations</div>
+                            <div className="text-xs text-slate-500">Saved slides</div>
+                          </div>
+                        </NavigationMenuLink>
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            {/* User Profile */}
+            <div className="flex items-center">
+              {user && (
+                <AvatarDropdown 
+                  user={user} 
+                  onSignOut={signOut}
+                />
+              )}
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Sign Out Button */}
-        <div className="mt-8">
-          <Button 
-            onClick={signOut}
-            variant="outline" 
-            className="w-full"
-          >
-            Sign Out
-          </Button>
-        </div>
-      </div>
+      <main className="flex-1">
+        <Outlet />
+      </main>
     </div>
   );
 };
