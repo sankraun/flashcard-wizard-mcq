@@ -188,7 +188,7 @@ const Index = () => {
     }
   };
   return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-50 shadow-lg">
+      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-50 shadow-lg my-[4px] mx-[27px] px-0 py-[3px]">
         <div className="max-w-7xl px-4 sm:px-6 lg:px-[44px] mx-[18px] my-[22px] py-0">
           <div className="flex items-center justify-between h-16">
             {/* Professional Logo & Brand */}
@@ -200,7 +200,7 @@ const Index = () => {
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Neutron AI
                 </span>
-                <p className="text-xs text-slate-500 font-medium">Intelligent Learning Platform</p>
+                
               </div>
             </div>
 
@@ -225,7 +225,7 @@ const Index = () => {
                   <p className="text-sm font-semibold text-slate-700">
                     Welcome back, {getNickname()}
                   </p>
-                  <p className="text-xs text-slate-500">Ready to learn?</p>
+                  
                 </div>
               </div>
               
@@ -283,16 +283,12 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-[29px] py-0">
         <div className="animate-fade-in space-y-8">
           {/* Welcome Section */}
           <div className="text-center mb-8 animate-scale-in">
-            <h1 className="text-display-1 mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Welcome to Neutron AI
-            </h1>
-            <p className="text-body-lg max-w-2xl mx-auto">
-              Transform your learning experience with AI-powered tools designed for modern education
-            </p>
+            
+            
           </div>
           
           {/* Content */}
