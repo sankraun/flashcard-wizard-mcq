@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,12 +17,9 @@ import AvatarDropdown from '../components/AvatarDropdown';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+
 const Index = () => {
-  const {
-    user,
-    loading,
-    signOut
-  } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [refreshMCQs, setRefreshMCQs] = useState(0);
   const [activeTab, setActiveTab] = useState<'mcqs' | 'notes-generator' | 'saved-notes' | 'powerpoint' | 'presentations' | 'flashcards' | 'practice'>('mcqs');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,9 +45,11 @@ const Index = () => {
     },
     enabled: !mobileMenuOpen
   });
+
   const handleMCQsGenerated = () => {
     setRefreshMCQs(prev => prev + 1);
   };
+
   const handleTabChange = (newTab: typeof activeTab) => {
     setContentLoading(true);
     setTimeout(() => {
@@ -57,6 +57,7 @@ const Index = () => {
       setContentLoading(false);
     }, 150);
   };
+
   const getNickname = () => {
     if (!user) return '';
     if (user.user_metadata && user.user_metadata.nickname) {
@@ -67,87 +68,99 @@ const Index = () => {
     }
     return 'User';
   };
-  const navigationItems = [{
-    id: 'practice',
-    label: 'Practice',
-    icon: Target,
-    action: () => navigate('/mcq-practice'),
-    description: 'Take practice quizzes to test your knowledge',
-    color: 'text-green-600'
-  }, {
-    id: 'mcqs',
-    label: 'MCQ Generator',
-    icon: Brain,
-    action: () => handleTabChange('mcqs'),
-    description: 'Generate custom multiple choice questions',
-    color: 'text-blue-600'
-  }, {
-    id: 'notes-generator',
-    label: 'Smart Notes',
-    icon: FileText,
-    action: () => handleTabChange('notes-generator'),
-    description: 'Create comprehensive study notes',
-    color: 'text-purple-600'
-  }, {
-    id: 'saved-notes',
-    label: 'Notes Library',
-    icon: BookOpen,
-    action: () => handleTabChange('saved-notes'),
-    description: 'Access your previously saved notes',
-    color: 'text-indigo-600'
-  }, {
-    id: 'powerpoint',
-    label: 'PowerPoint',
-    icon: Sparkles,
-    action: () => handleTabChange('powerpoint'),
-    description: 'Generate professional PowerPoint slides',
-    color: 'text-gradient-to-r from-indigo-600 to-purple-600'
-  }, {
-    id: 'presentations',
-    label: 'Presentations',
-    icon: History,
-    action: () => handleTabChange('presentations'),
-    description: 'View and download your saved presentations',
-    color: 'text-slate-600'
-  }, {
-    id: 'flashcards',
-    label: 'Flashcards',
-    icon: Zap,
-    action: () => handleTabChange('flashcards'),
-    description: 'Generate smart flashcards for spaced repetition',
-    color: 'text-yellow-600'
-  }, {
-    id: 'practice-flashcards',
-    label: 'Study Session',
-    icon: Timer,
-    action: () => handleTabChange('practice'),
-    description: 'Practice with spaced repetition flashcards',
-    color: 'text-red-600'
-  }];
+
+  const navigationItems = [
+    {
+      id: 'practice',
+      label: 'Practice',
+      icon: Target,
+      action: () => navigate('/mcq-practice'),
+      description: 'Test your knowledge'
+    },
+    {
+      id: 'mcqs',
+      label: 'MCQ Generator',
+      icon: Brain,
+      action: () => handleTabChange('mcqs'),
+      description: 'Generate questions'
+    },
+    {
+      id: 'notes-generator',
+      label: 'Smart Notes',
+      icon: FileText,
+      action: () => handleTabChange('notes-generator'),
+      description: 'Create study notes'
+    },
+    {
+      id: 'saved-notes',
+      label: 'Notes Library',
+      icon: BookOpen,
+      action: () => handleTabChange('saved-notes'),
+      description: 'View saved notes'
+    },
+    {
+      id: 'powerpoint',
+      label: 'PowerPoint',
+      icon: Sparkles,
+      action: () => handleTabChange('powerpoint'),
+      description: 'Create slides'
+    },
+    {
+      id: 'presentations',
+      label: 'Presentations',
+      icon: History,
+      action: () => handleTabChange('presentations'),
+      description: 'View presentations'
+    },
+    {
+      id: 'flashcards',
+      label: 'Flashcards',
+      icon: Zap,
+      action: () => handleTabChange('flashcards'),
+      description: 'Generate flashcards'
+    },
+    {
+      id: 'practice-flashcards',
+      label: 'Study Session',
+      icon: Timer,
+      action: () => handleTabChange('practice'),
+      description: 'Practice flashcards'
+    }
+  ];
+
   const handleNavItemClick = (item: typeof navigationItems[0]) => {
     item.action();
     setMobileMenuOpen(false);
   };
+
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-slate-700 mb-2">Loading Neutron AI</h2>
-          <p className="text-slate-500">Preparing your intelligent workspace...</p>
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-foreground">Loading Neutron AI</h2>
+            <p className="text-sm text-muted-foreground">Preparing your workspace...</p>
+          </div>
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (!user) {
     return <AuthPage />;
   }
+
   const renderContent = () => {
     if (contentLoading) {
       switch (activeTab) {
         case 'mcqs':
-          return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LoadingSkeleton variant="mcq" />
               <LoadingSkeleton variant="mcq" />
-            </div>;
+            </div>
+          );
         case 'notes-generator':
           return <LoadingSkeleton variant="notes" />;
         case 'saved-notes':
@@ -161,16 +174,19 @@ const Index = () => {
           return <LoadingSkeleton variant="card" />;
       }
     }
+
     switch (activeTab) {
       case 'mcqs':
-        return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
             </div>
             <div>
               <MCQViewer key={refreshMCQs} />
             </div>
-          </div>;
+          </div>
+        );
       case 'notes-generator':
         return <NotesGenerator />;
       case 'saved-notes':
@@ -187,91 +203,86 @@ const Index = () => {
         return null;
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-50 shadow-lg my-[4px] mx-[27px] px-0 py-[3px]">
-        <div className="max-w-7xl px-4 sm:px-6 lg:px-[44px] mx-[18px] my-[22px] py-0">
-          <div className="flex items-center justify-between h-16">
-            {/* Professional Logo & Brand */}
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Brain className="w-6 h-6 text-white" />
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Clean, professional header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Brain className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Neutron AI
-                </span>
-                
-              </div>
+              <h1 className="text-xl font-semibold text-foreground">Neutron AI</h1>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:block">
-              <nav className="flex items-center space-x-1">
-                {navigationItems.map(item => <button key={item.id} onClick={item.action} className={`
-                       flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-md
-                       ${item.id === 'practice' && false || item.id !== 'practice' && activeTab === item.id ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'}
-                    `}>
-                    <item.icon className={`w-4 h-4 ${item.color}`} />
-                    <span>{item.label}</span>
-                  </button>)}
-              </nav>
-            </div>
+            <nav className="hidden md:flex items-center space-x-1">
+              {navigationItems.slice(0, 6).map((item) => (
+                <Button
+                  key={item.id}
+                  variant={
+                    (item.id === 'practice' && false) || 
+                    (item.id !== 'practice' && activeTab === item.id) 
+                      ? "default" 
+                      : "ghost"
+                  }
+                  size="sm"
+                  onClick={item.action}
+                  className="text-sm font-medium hover-lift"
+                >
+                  <item.icon className="w-4 h-4 mr-2" />
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
 
-            {/* Right side actions */}
-            <div className="flex items-center gap-4">
-              {/* User info - Desktop only */}
-              <div className="hidden lg:flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-700">
-                    Welcome back, {getNickname()}
-                  </p>
-                  
-                </div>
+            {/* User Profile & Mobile Menu */}
+            <div className="flex items-center space-x-3">
+              <div className="hidden md:flex items-center space-x-3">
+                <span className="text-sm text-muted-foreground">
+                  Welcome, {getNickname()}
+                </span>
               </div>
               
-              {/* Avatar */}
-              <div>
-                <AvatarDropdown onSignOut={signOut} user={user} />
-              </div>
+              <AvatarDropdown onSignOut={signOut} user={user} />
               
-              {/* Mobile Menu Button */}
-              <div className="lg:hidden">
+              {/* Mobile Menu */}
+              <div className="md:hidden">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
-                    <button className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-all duration-200">
+                    <Button variant="ghost" size="sm">
                       <Menu className="h-5 w-5" />
-                      <span className="sr-only">Open menu</span>
-                    </button>
+                    </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-80 bg-gradient-to-br from-white to-slate-50">
-                    <div className="flex flex-col gap-6 mt-8">
+                  <SheetContent side="right" className="w-80">
+                    <div className="mt-6 space-y-4">
                       {/* Mobile user info */}
-                      <div className="text-center pb-6 border-b border-slate-200">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <Brain className="w-8 h-8 text-white" />
-                        </div>
-                        <h2 className="text-lg font-bold text-slate-800">
-                          {getNickname()}
-                        </h2>
-                        <p className="text-sm text-slate-500">Neutron AI Learning</p>
+                      <div className="pb-4 border-b">
+                        <h3 className="font-medium text-foreground">{getNickname()}</h3>
+                        <p className="text-sm text-muted-foreground">Neutron AI</p>
                       </div>
                       
                       {/* Mobile navigation */}
-                      <nav className="flex flex-col gap-2">
-                        {navigationItems.map(item => <button key={item.id} onClick={() => handleNavItemClick(item)} className={`
-                             flex items-center gap-4 px-4 py-4 rounded-xl text-left transition-all duration-300 w-full hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md
-                               ${item.id === 'practice' && false || item.id !== 'practice' && activeTab === item.id ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'}
-                            `}>
-                            <div className="p-2 bg-white rounded-lg shadow-sm">
-                              <item.icon className={`w-5 h-5 ${item.color}`} />
-                            </div>
+                      <nav className="space-y-1">
+                        {navigationItems.map((item) => (
+                          <Button
+                            key={item.id}
+                            variant="ghost"
+                            onClick={() => handleNavItemClick(item)}
+                            className="w-full justify-start text-left"
+                          >
+                            <item.icon className="w-4 h-4 mr-3" />
                             <div>
-                              <span className="font-semibold">{item.label}</span>
-                              <p className="text-xs opacity-75 mt-0.5">
+                              <div className="font-medium">{item.label}</div>
+                              <div className="text-xs text-muted-foreground">
                                 {item.description}
-                              </p>
+                              </div>
                             </div>
-                          </button>)}
+                          </Button>
+                        ))}
                       </nav>
                     </div>
                   </SheetContent>
@@ -283,20 +294,13 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-[29px] py-0">
-        <div className="animate-fade-in space-y-8">
-          {/* Welcome Section */}
-          <div className="text-center mb-8 animate-scale-in">
-            
-            
-          </div>
-          
-          {/* Content */}
-          <div className="animate-slide-up">
-            {renderContent()}
-          </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-fade-in">
+          {renderContent()}
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

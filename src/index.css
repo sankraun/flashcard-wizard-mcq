@@ -46,140 +46,21 @@
   }
 }
 
+/* Clean, professional typography */
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+  background: hsl(var(--background));
   color: hsl(var(--foreground));
-  min-height: 100vh;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.3s, color 0.3s;
-  font-feature-settings: 'cv11', 'ss01';
-  font-variation-settings: 'opsz' 32;
 }
 
-/* Professional Typography System */
-@layer utilities {
-  .text-display-1 {
-    @apply text-4xl font-bold tracking-tight text-foreground leading-tight;
-  }
-  
-  .text-display-2 {
-    @apply text-3xl font-bold tracking-tight text-foreground leading-tight;
-  }
-  
-  .text-heading-1 {
-    @apply text-2xl font-semibold tracking-tight text-foreground leading-snug;
-  }
-  
-  .text-heading-2 {
-    @apply text-xl font-semibold tracking-tight text-foreground leading-snug;
-  }
-  
-  .text-heading-3 {
-    @apply text-lg font-medium tracking-tight text-foreground leading-normal;
-  }
-  
-  .text-heading-4 {
-    @apply text-base font-medium tracking-tight text-foreground leading-normal;
-  }
-  
-  .text-body-lg {
-    @apply text-lg font-normal text-muted-foreground leading-relaxed;
-  }
-  
-  .text-body {
-    @apply text-base font-normal text-muted-foreground leading-relaxed;
-  }
-  
-  .text-body-sm {
-    @apply text-sm font-normal text-muted-foreground leading-relaxed;
-  }
-  
-  .text-caption {
-    @apply text-xs font-medium text-muted-foreground uppercase tracking-wider;
-  }
-  
-  .text-label {
-    @apply text-sm font-medium text-foreground leading-normal;
-  }
-  
-  .text-overline {
-    @apply text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-none;
-  }
-}
-
-::selection {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-/* Professional Cards & Interactive Elements */
-.card-modern {
-  @apply bg-card border border-border rounded-xl shadow-soft hover:shadow-card transition-all duration-300 hover:border-primary/20 hover:-translate-y-0.5;
-}
-
-.card-interactive {
-  @apply bg-card border border-border rounded-xl shadow-soft hover:shadow-elevated transition-all duration-300 hover:border-primary/30 hover:-translate-y-1 cursor-pointer;
-}
-
-.card-elevated {
-  @apply bg-card/50 border border-border/50 rounded-xl shadow-elevated backdrop-blur-md;
-}
-
-.card-glass {
-  @apply bg-background/80 backdrop-blur-md border border-border/20 shadow-glass hover:bg-background/90 transition-all duration-300;
-}
-
-/* Enhanced Hover Effects */
-.hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated;
-}
-
-.hover-scale {
-  @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-card;
-}
-
-.hover-glow {
-  @apply transition-all duration-300 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:border-primary/30;
-}
-
-/* Professional Animation System */
-.animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-.animate-stagger {
-  animation: fadeIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation-fill-mode: both;
-}
-
-.animate-stagger:nth-child(1) { animation-delay: 0.1s; }
-.animate-stagger:nth-child(2) { animation-delay: 0.2s; }
-.animate-stagger:nth-child(3) { animation-delay: 0.3s; }
-.animate-stagger:nth-child(4) { animation-delay: 0.4s; }
-.animate-stagger:nth-child(5) { animation-delay: 0.5s; }
-
+/* Professional animation system */
 @keyframes fadeIn {
   from { 
     opacity: 0; 
-    transform: translateY(8px); 
+    transform: translateY(10px); 
   }
   to { 
     opacity: 1; 
@@ -187,32 +68,10 @@ body {
   }
 }
 
-@keyframes scaleIn {
+@keyframes slideIn {
   from { 
     opacity: 0; 
-    transform: scale(0.95) translateY(8px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: scale(1) translateY(0); 
-  }
-}
-
-@keyframes slideUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(12px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
-}
-
-@keyframes slideInRight {
-  from { 
-    opacity: 0; 
-    transform: translateX(16px); 
+    transform: translateX(-10px); 
   }
   to { 
     opacity: 1; 
@@ -220,17 +79,10 @@ body {
   }
 }
 
-@keyframes bounceIn {
+@keyframes scaleIn {
   from { 
     opacity: 0; 
-    transform: scale(0.3); 
-  }
-  50% { 
-    opacity: 1; 
-    transform: scale(1.05); 
-  }
-  70% { 
-    transform: scale(0.9); 
+    transform: scale(0.98); 
   }
   to { 
     opacity: 1; 
@@ -238,30 +90,77 @@ body {
   }
 }
 
-/* Professional Focus & Interaction States */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background transition-all duration-200;
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.focus-brand {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-200;
+.animate-slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Advanced Button Variants */
-.btn-gradient {
-  @apply bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-md hover:shadow-lg;
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-ghost-brand {
-  @apply bg-transparent text-primary border border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all duration-200;
+.animate-stagger {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
 }
 
-/* Professional Status Indicators */
-.status-dot {
-  @apply w-2 h-2 rounded-full animate-pulse;
+.animate-stagger:nth-child(1) { animation-delay: 0.05s; }
+.animate-stagger:nth-child(2) { animation-delay: 0.1s; }
+.animate-stagger:nth-child(3) { animation-delay: 0.15s; }
+.animate-stagger:nth-child(4) { animation-delay: 0.2s; }
+.animate-stagger:nth-child(5) { animation-delay: 0.25s; }
+
+/* Professional hover effects */
+.hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.status-success { @apply bg-green-500; }
-.status-warning { @apply bg-yellow-500; }
-.status-error { @apply bg-red-500; }
-.status-info { @apply bg-blue-500; }
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Clean focus states */
+.focus-ring:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: hsl(var(--ring));
+  ring-offset: 2px;
+  ring-offset-color: hsl(var(--background));
+}
+
+/* Responsive grid system */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .grid-responsive {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Clean scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
