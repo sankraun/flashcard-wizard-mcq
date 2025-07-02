@@ -239,12 +239,12 @@ const Index = () => {
                     key={item.id}
                     onClick={item.action}
                     className={`
-                      flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105
-                      ${(item.id === 'practice' && false) || 
-                        (item.id !== 'practice' && activeTab === item.id)
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-2 border-blue-200 shadow-md' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-2 border-transparent'
-                      }
+                       flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-md
+                       ${(item.id === 'practice' && false) || 
+                         (item.id !== 'practice' && activeTab === item.id)
+                         ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' 
+                         : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'
+                       }
                     `}
                   >
                     <item.icon className={`w-4 h-4 ${item.color}`} />
@@ -300,12 +300,12 @@ const Index = () => {
                             key={item.id}
                             onClick={() => handleNavItemClick(item)}
                             className={`
-                              flex items-center gap-4 px-4 py-4 rounded-xl text-left transition-all duration-200 w-full transform hover:scale-[1.02]
-                              ${(item.id === 'practice' && false) || 
-                                (item.id !== 'practice' && activeTab === item.id)
-                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-2 border-blue-200 shadow-md' 
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-2 border-transparent'
-                              }
+                             flex items-center gap-4 px-4 py-4 rounded-xl text-left transition-all duration-300 w-full hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md
+                               ${(item.id === 'practice' && false) || 
+                                 (item.id !== 'practice' && activeTab === item.id)
+                                 ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-2 border-primary/20 shadow-md' 
+                                 : 'text-muted-foreground hover:text-foreground hover:bg-accent border-2 border-transparent hover:border-border'
+                               }
                             `}
                           >
                             <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -331,8 +331,21 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-fade-in">
-          {renderContent()}
+        <div className="animate-fade-in space-y-8">
+          {/* Welcome Section */}
+          <div className="text-center mb-8 animate-scale-in">
+            <h1 className="text-display-1 mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Welcome to Neutron AI
+            </h1>
+            <p className="text-body-lg max-w-2xl mx-auto">
+              Transform your learning experience with AI-powered tools designed for modern education
+            </p>
+          </div>
+          
+          {/* Content */}
+          <div className="animate-slide-up">
+            {renderContent()}
+          </div>
         </div>
       </main>
     </div>
