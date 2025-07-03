@@ -89,7 +89,7 @@ const Index = () => {
     }
     switch (activeTab) {
       case 'mcqs':
-        return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-0">
+        return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-[10px] mx-[2px]">
             <div>
               <MCQGenerator onMCQsGenerated={handleMCQsGenerated} />
             </div>
