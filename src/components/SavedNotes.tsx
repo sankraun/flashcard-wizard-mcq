@@ -233,13 +233,13 @@ const SavedNotes = () => {
 
   const formatNotesForDisplay = (text: string) => {
     return text
-      .replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>') // Highlight key points (bold)
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
-      .replace(/^### (.*$)/gm, '<h3 style="font-family: Calibri, Arial, sans-serif; font-size: 1.1rem;" class="text-lg font-bold mt-4 mb-2 text-pink-600">$1</h3>') // H3 headings (subheading, pink)
-      .replace(/^## (.*$)/gm, '<h2 style="font-family: Calibri, Arial, sans-serif; font-size: 1.25rem;" class="text-xl font-bold mt-6 mb-3 text-green-700">$1</h2>') // H2 headings (main subheading, green)
-      .replace(/^# (.*$)/gm, '<h1 style="font-family: Calibri, Arial, sans-serif; font-size: 1.5rem;" class="text-2xl font-bold mt-8 mb-4 text-blue-900">$1</h1>') // H1 headings (main heading)
-      .replace(/^- (.*$)/gm, '<li style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;" class="ml-4">• <span class="bg-yellow-100 px-1 rounded">$1</span></li>') // Bullet points highlighted
-      .replace(/\n\n/g, '</p><p class="mb-2" style="font-family: Calibri, Arial, sans-serif; font-size: 1rem;">') // Paragraphs
+      .replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200 px-1 rounded text-sm">$1</mark>') // Highlight key points (bold) - smaller font
+      .replace(/\*(.*?)\*/g, '<em class="text-sm">$1</em>') // Italic text - smaller font
+      .replace(/^### (.*$)/gm, '<h3 style="font-family: Calibri, Arial, sans-serif; font-size: 0.95rem;" class="text-base font-bold mt-3 mb-2 text-pink-600">$1</h3>') // H3 headings - smaller
+      .replace(/^## (.*$)/gm, '<h2 style="font-family: Calibri, Arial, sans-serif; font-size: 1.05rem;" class="text-lg font-bold mt-4 mb-2 text-green-700">$1</h2>') // H2 headings - smaller
+      .replace(/^# (.*$)/gm, '<h1 style="font-family: Calibri, Arial, sans-serif; font-size: 1.15rem;" class="text-xl font-bold mt-5 mb-3 text-blue-900">$1</h1>') // H1 headings - smaller
+      .replace(/^- (.*$)/gm, '<li style="font-family: Calibri, Arial, sans-serif; font-size: 0.9rem;" class="ml-4 text-sm">• <span class="bg-yellow-100 px-1 rounded">$1</span></li>') // Bullet points - smaller
+      .replace(/\n\n/g, '</p><p class="mb-2 text-sm" style="font-family: Calibri, Arial, sans-serif; font-size: 0.9rem;">') // Paragraphs - smaller
       .replace(/\n/g, '<br/>'); // Line breaks
   };
 
@@ -247,42 +247,42 @@ const SavedNotes = () => {
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 50;
+    const margin = 40; // Reduced margin
     const contentWidth = pageWidth - (margin * 2);
-    let yPosition = margin + 30;
+    let yPosition = margin + 20;
     let pageNumber = 1;
 
     // Helper function to add page numbers
     const addPageNumber = () => {
-      pdf.setFontSize(9);
+      pdf.setFontSize(8); // Smaller page number
       pdf.setTextColor(120, 120, 120);
-      pdf.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 25, { align: 'right' });
+      pdf.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 20, { align: 'right' });
       pdf.setTextColor(0, 0, 0);
     };
 
     // Main title
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(20);
+    pdf.setFontSize(14); // Reduced from 20
     pdf.setTextColor(30, 58, 138); // Blue
     const titleLines = pdf.splitTextToSize(note.title, contentWidth);
     for (const line of titleLines) {
       pdf.text(line, margin, yPosition);
-      yPosition += 24;
+      yPosition += 16; // Reduced line height
     }
-    yPosition += 10;
+    yPosition += 8;
 
     // Date and metadata
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
+    pdf.setFontSize(8); // Reduced from 10
     pdf.setTextColor(100, 100, 100);
     pdf.text(`Created: ${new Date(note.created_at).toLocaleDateString()}`, margin, yPosition);
-    yPosition += 20;
+    yPosition += 15;
 
     // Divider line
     pdf.setDrawColor(220, 220, 220);
-    pdf.setLineWidth(1);
+    pdf.setLineWidth(0.5);
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 25;
+    yPosition += 20;
 
     // Process content with proper formatting
     const lines = note.content.split('\n');
@@ -290,80 +290,80 @@ const SavedNotes = () => {
     for (let line of lines) {
       line = line.trim();
       if (!line) {
-        yPosition += 8; // Small space for empty lines
+        yPosition += 6; // Reduced space for empty lines
         continue;
       }
 
       // Check if new page is needed
-      if (yPosition > pageHeight - margin - 50) {
+      if (yPosition > pageHeight - margin - 40) {
         addPageNumber();
         pdf.addPage();
         pageNumber++;
-        yPosition = margin + 30;
+        yPosition = margin + 20;
       }
 
       // Handle different text formats
       if (line.startsWith('# ')) {
         // Main heading
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(16);
+        pdf.setFontSize(12); // Reduced from 16
         pdf.setTextColor(30, 58, 138); // Blue
         const headingText = line.replace(/^# /, '');
         const headingLines = pdf.splitTextToSize(headingText, contentWidth);
         for (const headingLine of headingLines) {
           pdf.text(headingLine, margin, yPosition);
-          yPosition += 20;
+          yPosition += 14; // Reduced from 20
         }
-        yPosition += 8;
+        yPosition += 6;
       } else if (line.startsWith('## ')) {
         // Sub heading
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(14);
+        pdf.setFontSize(10); // Reduced from 14
         pdf.setTextColor(34, 139, 34); // Green
         const subHeadingText = line.replace(/^## /, '');
         const subHeadingLines = pdf.splitTextToSize(subHeadingText, contentWidth);
         for (const subHeadingLine of subHeadingLines) {
           pdf.text(subHeadingLine, margin, yPosition);
-          yPosition += 18;
+          yPosition += 12; // Reduced from 18
         }
-        yPosition += 6;
+        yPosition += 4;
       } else if (line.startsWith('### ')) {
         // Minor heading
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12);
+        pdf.setFontSize(9); // Reduced from 12
         pdf.setTextColor(219, 39, 119); // Pink
         const minorHeadingText = line.replace(/^### /, '');
         const minorHeadingLines = pdf.splitTextToSize(minorHeadingText, contentWidth);
         for (const minorHeadingLine of minorHeadingLines) {
           pdf.text(minorHeadingLine, margin, yPosition);
-          yPosition += 16;
+          yPosition += 11; // Reduced from 16
         }
-        yPosition += 4;
+        yPosition += 3;
       } else if (line.startsWith('- ')) {
         // Bullet points
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(11);
+        pdf.setFontSize(8); // Reduced from 11
         pdf.setTextColor(60, 60, 60);
         const bulletText = line.replace(/^- /, '');
         
         // Add bullet symbol
-        pdf.text('•', margin + 10, yPosition);
+        pdf.text('•', margin + 8, yPosition);
         
-        // Add bullet content with highlighting effect (using gray background color)
+        // Add bullet content with highlighting effect
         pdf.setFillColor(255, 248, 196); // Light yellow background
-        const bulletLines = pdf.splitTextToSize(bulletText, contentWidth - 30);
+        const bulletLines = pdf.splitTextToSize(bulletText, contentWidth - 25);
         for (const bulletLine of bulletLines) {
           // Create a subtle background for key points
           const textWidth = pdf.getTextWidth(bulletLine);
-          pdf.rect(margin + 25, yPosition - 8, textWidth + 4, 12, 'F');
-          pdf.text(bulletLine, margin + 27, yPosition);
-          yPosition += 14;
+          pdf.rect(margin + 20, yPosition - 6, textWidth + 3, 9, 'F');
+          pdf.text(bulletLine, margin + 22, yPosition);
+          yPosition += 10; // Reduced from 14
         }
-        yPosition += 2;
+        yPosition += 1;
       } else if (line.includes('**') || line.includes('*')) {
         // Handle bold and italic text
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(11);
+        pdf.setFontSize(8); // Reduced from 11
         pdf.setTextColor(40, 40, 40);
         
         // Simple bold handling (remove ** markers and make text bold)
@@ -375,26 +375,26 @@ const SavedNotes = () => {
           pdf.setFont('helvetica', 'bold');
           pdf.setFillColor(255, 235, 59); // Yellow highlight
           const textWidth = pdf.getTextWidth(processedLine);
-          pdf.rect(margin, yPosition - 8, textWidth + 4, 12, 'F');
+          pdf.rect(margin, yPosition - 6, textWidth + 3, 9, 'F');
         }
         
         const processedLines = pdf.splitTextToSize(processedLine, contentWidth);
         for (const processedTextLine of processedLines) {
           pdf.text(processedTextLine, margin, yPosition);
-          yPosition += 14;
+          yPosition += 10; // Reduced from 14
         }
-        yPosition += 3;
+        yPosition += 2;
       } else {
         // Regular paragraph text
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(11);
+        pdf.setFontSize(8); // Reduced from 11
         pdf.setTextColor(40, 40, 40);
         const paragraphLines = pdf.splitTextToSize(line, contentWidth);
         for (const paragraphLine of paragraphLines) {
           pdf.text(paragraphLine, margin, yPosition);
-          yPosition += 14;
+          yPosition += 10; // Reduced from 14
         }
-        yPosition += 4;
+        yPosition += 3;
       }
     }
 
@@ -418,13 +418,13 @@ const SavedNotes = () => {
   const exportToDoc = (note: Note) => {
     // Clean content for Word export
     const cleanContent = note.content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic text
-      .replace(/^# (.*$)/gm, '<h1 style="color:#1E3A8A;font-size:1.5em;margin:1em 0 0.5em 0;">$1</h1>')     // H1 headings
-      .replace(/^## (.*$)/gm, '<h2 style="color:#228B22;font-size:1.3em;margin:1em 0 0.5em 0;">$1</h2>')    // H2 headings  
-      .replace(/^### (.*$)/gm, '<h3 style="color:#DB2777;font-size:1.1em;margin:1em 0 0.5em 0;">$1</h3>')   // H3 headings
-      .replace(/^- (.*$)/gm, '<li style="margin:0.2em 0;background:#FFF9C4;padding:2px 4px;border-radius:3px;">$1</li>') // Bullet points
-      .replace(/\n\n/g, '</p><p style="margin:0.5em 0;">')           // Paragraphs
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-size:10px;background:#FBBF24;padding:1px 3px;border-radius:2px;">$1</strong>')  // Bold text - smaller
+      .replace(/\*(.*?)\*/g, '<em style="font-size:10px;">$1</em>')              // Italic text - smaller
+      .replace(/^# (.*$)/gm, '<h1 style="color:#1E3A8A;font-size:12px;margin:0.8em 0 0.4em 0;font-weight:bold;">$1</h1>')     // H1 headings - smaller
+      .replace(/^## (.*$)/gm, '<h2 style="color:#228B22;font-size:11px;margin:0.8em 0 0.4em 0;font-weight:bold;">$1</h2>')    // H2 headings - smaller
+      .replace(/^### (.*$)/gm, '<h3 style="color:#DB2777;font-size:10px;margin:0.8em 0 0.4em 0;font-weight:bold;">$1</h3>')   // H3 headings - smaller
+      .replace(/^- (.*$)/gm, '<li style="margin:0.1em 0;background:#FFF9C4;padding:1px 3px;border-radius:2px;font-size:9px;">$1</li>') // Bullet points - smaller
+      .replace(/\n\n/g, '</p><p style="margin:0.3em 0;font-size:9px;">')           // Paragraphs - smaller
       .replace(/\n/g, '<br/>');                                       // Line breaks
 
     let htmlContent = `
@@ -435,22 +435,23 @@ const SavedNotes = () => {
           <style>
             body { 
               font-family: Calibri, Arial, sans-serif; 
-              line-height: 1.6; 
+              line-height: 1.4; 
               color: #333; 
               max-width: 800px; 
               margin: 0 auto; 
-              padding: 2em; 
+              padding: 1.5em; 
               background: #fff;
+              font-size: 9px;
             }
-            h1 { color: #1E3A8A; font-size: 1.5em; border-bottom: 2px solid #E5E7EB; padding-bottom: 0.3em; }
-            h2 { color: #228B22; font-size: 1.3em; margin-top: 1.5em; }
-            h3 { color: #DB2777; font-size: 1.1em; margin-top: 1.2em; }
-            p { margin: 0.5em 0; text-align: justify; }
-            li { margin: 0.2em 0; background: #FFF9C4; padding: 2px 6px; border-radius: 3px; list-style-type: disc; }
-            ul { margin: 0.5em 0 0.5em 2em; }
-            strong { background: #FBBF24; padding: 1px 3px; border-radius: 2px; }
-            .header { border-bottom: 1px solid #E5E7EB; margin-bottom: 1.5em; padding-bottom: 1em; }
-            .date { color: #6B7280; font-size: 0.9em; }
+            h1 { color: #1E3A8A; font-size: 12px; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.2em; margin: 0.8em 0 0.4em 0; }
+            h2 { color: #228B22; font-size: 11px; margin-top: 1em; margin-bottom: 0.4em; }
+            h3 { color: #DB2777; font-size: 10px; margin-top: 0.8em; margin-bottom: 0.3em; }
+            p { margin: 0.3em 0; text-align: justify; font-size: 9px; }
+            li { margin: 0.1em 0; background: #FFF9C4; padding: 1px 4px; border-radius: 2px; list-style-type: disc; font-size: 9px; }
+            ul { margin: 0.3em 0 0.3em 1.5em; }
+            strong { background: #FBBF24; padding: 1px 2px; border-radius: 1px; font-size: 9px; }
+            .header { border-bottom: 1px solid #E5E7EB; margin-bottom: 1em; padding-bottom: 0.8em; }
+            .date { color: #6B7280; font-size: 8px; }
           </style>
         </head>
         <body>
@@ -512,25 +513,26 @@ const SavedNotes = () => {
 
   const openNoteInNewTab = (note: Note) => {
     const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><title>${note.title}</title><style>
-      body { font-family: Calibri, Arial, sans-serif; background: #f9fafb; color: #222; margin: 0; padding: 2rem; }
-      .note-title { color: #0a1e50; font-size: 2rem; font-weight: bold; margin-bottom: 0.5em; }
-      .note-date { color: #888; font-size: 0.9rem; margin-bottom: 1em; }
-      .note-content { max-width: 700px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
-      h1, h2, h3 { margin-top: 1.5em; }
-      h1 { color: #0a1e50; font-size: 1.5rem; }
-      h2 { color: #228b22; font-size: 1.2rem; }
-      h3 { color: #db2777; font-size: 1.1rem; }
-      mark { background: #fff9c4; border-radius: 4px; padding: 0 4px; }
-      ul { margin-left: 1.5em; }
-      li { margin-bottom: 0.3em; }
-      table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
-      td { border: 1px solid #bbb; padding: 6px 8px; font-size: 1rem; }
+      body { font-family: Calibri, Arial, sans-serif; background: #f9fafb; color: #222; margin: 0; padding: 1.5rem; font-size: 9px; }
+      .note-title { color: #0a1e50; font-size: 14px; font-weight: bold; margin-bottom: 0.4em; }
+      .note-date { color: #888; font-size: 8px; margin-bottom: 0.8em; }
+      .note-content { max-width: 700px; background: #fff; border-radius: 8px; box-shadow: 0 1px 6px #0001; padding: 1.5rem; }
+      h1, h2, h3 { margin-top: 1em; }
+      h1 { color: #0a1e50; font-size: 12px; }
+      h2 { color: #228b22; font-size: 11px; }
+      h3 { color: #db2777; font-size: 10px; }
+      mark { background: #fff9c4; border-radius: 3px; padding: 0 3px; font-size: 9px; }
+      ul { margin-left: 1.2em; }
+      li { margin-bottom: 0.2em; font-size: 9px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 0.8em; }
+      td { border: 1px solid #bbb; padding: 4px 6px; font-size: 9px; }
       tr:first-child td { font-weight: bold; background: #f5f5f5; }
+      p { font-size: 9px; margin: 0.3em 0; }
       @media (max-width: 600px) { .note-content { padding: 1rem; } body { padding: 0.5rem; } }
     </style></head><body><div class='note-content'>
       <div class='note-title'>${note.title}</div>
       <div class='note-date'>Created: ${new Date(note.created_at).toLocaleDateString()}</div>
-      <hr style="border:1px solid #eee; margin:12px 0;"/>
+      <hr style="border:1px solid #eee; margin:10px 0;"/>
       <div>${formatNotesForDisplay(note.content)}</div>
     </div></body></html>`;
     const newTab = window.open();
