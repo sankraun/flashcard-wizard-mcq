@@ -1,202 +1,152 @@
 
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import AvatarDropdown from './AvatarDropdown';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { 
+  Sparkles, 
+  BookOpen, 
   Brain, 
-  FileText, 
-  History, 
-  Target, 
   Presentation, 
-  Timer, 
-  Zap, 
-  BookOpen,
-  Plus,
-  User
+  Target,
+  User,
+  Zap
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import AvatarDropdown from './AvatarDropdown';
 
 interface AppSidebarProps {
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  onTabChange: (tab: any) => void;
 }
 
 const AppSidebar = ({ activeTab, onTabChange }: AppSidebarProps) => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { state } = useSidebar();
+  const { user } = useAuth();
+  const { collapsed } = useSidebar();
 
-  const practiceItems = [
+  const menuItems = [
     {
-      id: 'practice',
-      label: 'MCQ Practice',
-      icon: Target,
-      action: () => navigate('/mcq-practice'),
-      description: 'Test your knowledge'
+      id: 'generator',
+      label: 'AI Generator',
+      icon: Sparkles,
+      description: 'Generate MCQs, Notes, Flashcards & PPT'
     },
-    {
-      id: 'practice-flashcards',
-      label: 'Study Session',
-      icon: Timer,
-      action: () => onTabChange('practice'),
-      description: 'Practice flashcards'
-    }
-  ];
-
-  const generateItems = [
-    {
-      id: 'mcqs',
-      label: 'MCQ Generator',
-      icon: Brain,
-      action: () => onTabChange('mcqs'),
-      description: 'Generate questions'
-    },
-    {
-      id: 'notes-generator',
-      label: 'Smart Notes',
-      icon: FileText,
-      action: () => onTabChange('notes-generator'),
-      description: 'Create study notes'
-    },
-    {
-      id: 'powerpoint',
-      label: 'PowerPoint',
-      icon: Presentation,
-      action: () => onTabChange('powerpoint'),
-      description: 'Create slides'
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: Zap,
-      action: () => onTabChange('flashcards'),
-      description: 'Generate flashcards'
-    }
-  ];
-
-  const libraryItems = [
     {
       id: 'saved-notes',
       label: 'Notes Library',
       icon: BookOpen,
-      action: () => onTabChange('saved-notes'),
-      description: 'View saved notes'
+      description: 'View and manage your notes'
+    },
+    {
+      id: 'mcq-practice',
+      label: 'MCQ Practice',
+      icon: Brain,
+      description: 'Practice with generated MCQs'
     },
     {
       id: 'presentations',
       label: 'Presentations',
-      icon: History,
-      action: () => onTabChange('presentations'),
-      description: 'View presentations'
+      icon: Presentation,
+      description: 'View saved presentations'
+    },
+    {
+      id: 'practice',
+      label: 'Study Session',
+      icon: Target,
+      description: 'Flashcard practice session'
     }
   ];
 
-  const isItemActive = (itemId: string) => {
-    if (itemId === 'practice') {
-      return location.pathname === '/mcq-practice';
-    }
-    return activeTab === itemId;
-  };
-
-  const renderMenuItem = (item: typeof practiceItems[0]) => (
-    <SidebarMenuItem key={item.id}>
-      <SidebarMenuButton
-        onClick={item.action}
-        isActive={isItemActive(item.id)}
-        className="w-full justify-start"
-      >
-        <item.icon className="h-4 w-4" />
-        {state === 'expanded' && <span>{item.label}</span>}
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-
-  const getNickname = () => {
-    if (!user) return '';
-    if (user.user_metadata && user.user_metadata.nickname) {
-      return user.user_metadata.nickname;
-    }
-    if (user.email) {
-      return user.email.split('@')[0];
-    }
-    return 'User';
-  };
+  const isActive = (itemId: string) => activeTab === itemId;
 
   return (
-    <Sidebar className="border-r border-border">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Brain className="w-5 h-5 text-primary-foreground" />
-          </div>
-          {state === 'expanded' && (
-            <span className="text-xl font-semibold text-foreground">Neutron AI</span>
-          )}
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Practice</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {practiceItems.map(renderMenuItem)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Generate</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {generateItems.map(renderMenuItem)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Library</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {libraryItems.map(renderMenuItem)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="p-4">
-        {user && (
+    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-            {state === 'expanded' ? (
-              <AvatarDropdown user={user} onSignOut={signOut} />
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-center p-2"
-                onClick={() => {}}
-              >
-                <User className="h-4 w-4" />
-              </Button>
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            {!collapsed && (
+              <div>
+                <h1 className="font-bold text-lg text-gray-900">Neutron AI</h1>
+                <p className="text-xs text-gray-500">Study Assistant</p>
+              </div>
             )}
           </div>
-        )}
-      </SidebarFooter>
+        </div>
+
+        <SidebarContent className="flex-1">
+          <SidebarGroup>
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+              Main Features
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onTabChange(item.id)}
+                      className={`w-full text-left transition-all duration-200 ${
+                        isActive(item.id)
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600 font-medium'
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <item.icon className={`w-5 h-5 ${
+                          isActive(item.id) ? 'text-blue-600' : 'text-gray-500'
+                        }`} />
+                        {!collapsed && (
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{item.label}</div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {item.description}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        {/* User Section */}
+        <div className="p-4 border-t mt-auto">
+          {user && (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-600" />
+              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{user.email}</div>
+                  <div className="text-xs text-gray-500">Free Plan</div>
+                </div>
+              )}
+              <AvatarDropdown />
+            </div>
+          )}
+        </div>
+
+        {/* Collapse Toggle */}
+        <div className="p-2 border-t">
+          <SidebarTrigger className="w-full justify-center" />
+        </div>
+      </div>
     </Sidebar>
   );
 };
