@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,11 @@ import {
   BookOpen,
   Target,
   Scissors,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Settings,
+  Mic,
+  Waveform
 } from 'lucide-react';
 import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
@@ -134,7 +137,6 @@ const UnifiedGenerator = ({ onContentGenerated }: UnifiedGeneratorProps) => {
   const generateMCQs = async () => {
     const apiKey = 'AIzaSyCElPVe4sj1H1phq_5wgbApQWkjllvfz3Y';
     
-    // Generate chapter name if not provided
     let finalChapterName = chapter.trim();
     if (!finalChapterName) {
       setProcessingStep('Analyzing content to suggest topic name...');
@@ -201,7 +203,6 @@ const UnifiedGenerator = ({ onContentGenerated }: UnifiedGeneratorProps) => {
       }
     }
 
-    // Save MCQs to database
     const mcqsForDB = allGeneratedMCQs.map((mcq: any) => ({
       user_id: user.id,
       question: mcq.question,
@@ -466,177 +467,128 @@ Text: ${inputText}`;
 
   const isLongText = inputText.length > MAX_CHUNK_SIZE;
 
-  const getOutputTypeIcon = () => {
-    switch (outputType) {
-      case 'mcq': return <Brain className="w-5 h-5 text-blue-600" />;
-      case 'notes': return <FileText className="w-5 h-5 text-green-600" />;
-      case 'flashcards': return <Target className="w-5 h-5 text-purple-600" />;
-      case 'powerpoint': return <Presentation className="w-5 h-5 text-orange-600" />;
-      default: return <Sparkles className="w-5 h-5" />;
-    }
-  };
-
-  const getOutputTypeColor = () => {
-    switch (outputType) {
-      case 'mcq': return 'from-blue-600 to-indigo-600';
-      case 'notes': return 'from-green-600 to-emerald-600';
-      case 'flashcards': return 'from-purple-600 to-violet-600';
-      case 'powerpoint': return 'from-orange-600 to-red-600';
-      default: return 'from-blue-600 to-indigo-600';
-    }
-  };
+  const generationOptions = [
+    { id: 'mcq', label: 'MCQs', icon: Brain, color: 'from-blue-500 to-blue-600' },
+    { id: 'notes', label: 'Notes', icon: FileText, color: 'from-green-500 to-green-600' },
+    { id: 'flashcards', label: 'Flashcards', icon: Target, color: 'from-purple-500 to-purple-600' },
+    { id: 'powerpoint', label: 'Presentation', icon: Presentation, color: 'from-orange-500 to-orange-600' }
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">AI Study Assistant</h1>
-        <p className="text-gray-600">Transform your study material into interactive learning content</p>
-      </div>
-
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-        <CardContent className="p-8 space-y-6">
-          {/* Output Type Selection */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2 text-lg font-semibold text-gray-700">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              What would you like to generate?
-            </Label>
-            <Select value={outputType} onValueChange={(value: any) => setOutputType(value)}>
-              <SelectTrigger className="h-12 text-base border-2 border-gray-200 focus:border-blue-500">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mcq">
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-blue-600" />
-                    <span>Multiple Choice Questions</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="notes">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-green-600" />
-                    <span>Study Notes</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="flashcards">
-                  <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-purple-600" />
-                    <span>Flashcards</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="powerpoint">
-                  <div className="flex items-center gap-2">
-                    <Presentation className="w-4 h-4 text-orange-600" />
-                    <span>PowerPoint Presentation</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="flex flex-col h-full bg-gray-900 text-white">
+      {/* Main Content Area - Centered like ChatGPT */}
+      <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full px-6">
+        {/* Greeting */}
+        {!inputText && (
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2">
+              What do you want to Generate, {user?.email?.split('@')[0] || 'User'}?
+            </h1>
+            <p className="text-gray-400 text-lg">Choose your content type and start generating</p>
           </div>
+        )}
 
-          {/* Additional Options for MCQs */}
-          {outputType === 'mcq' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Mode</Label>
-                <Select value={mode} onValueChange={setMode}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic MCQs</SelectItem>
-                    <SelectItem value="clinical">Clinical/Applied</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Difficulty</Label>
-                <Select value={difficulty} onValueChange={setDifficulty}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Mixed</SelectItem>
-                    <SelectItem value="Easy">Easy</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+        {/* Generation Type Buttons */}
+        {!inputText && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 w-full max-w-2xl">
+            {generationOptions.map((option) => (
+              <Button
+                key={option.id}
+                onClick={() => setOutputType(option.id as any)}
+                className={`h-20 flex flex-col items-center gap-2 bg-gray-800 hover:bg-gray-700 border-2 transition-all ${
+                  outputType === option.id 
+                    ? 'border-purple-500 bg-purple-500/10' 
+                    : 'border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                <option.icon className="w-6 h-6" />
+                <span className="text-sm font-medium">{option.label}</span>
+              </Button>
+            ))}
+          </div>
+        )}
 
-          {/* Chapter/Topic Input */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2 text-base font-medium text-gray-700">
-              <BookOpen className="w-4 h-4 text-blue-600" />
-              Chapter/Topic (optional - will be auto-generated if empty)
-            </Label>
-            <Input
-              value={chapter}
-              onChange={(e) => setChapter(e.target.value)}
-              placeholder="e.g., Cardiovascular System, Machine Learning Basics"
-              className="h-12 text-base border-2 border-gray-200 focus:border-blue-500"
+        {/* Input Box */}
+        <div className="w-full max-w-3xl">
+          <div className="relative bg-gray-800 rounded-2xl border border-gray-700 focus-within:border-purple-500 transition-colors">
+            <Textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Generate from text..."
+              className="min-h-[120px] bg-transparent border-0 text-white placeholder-gray-400 resize-none focus:ring-0 text-base p-6 pr-20"
             />
+            
+            {/* Input Icons */}
+            <div className="absolute left-4 bottom-4 flex items-center gap-2">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
+                <Plus className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="absolute right-4 bottom-4 flex items-center gap-2">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
+                <Mic className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
+                <Waveform className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={generateContent}
+                disabled={isGenerating || !inputText.trim()}
+                size="sm"
+                className="h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600"
+              >
+                {isGenerating ? (
+                  <div className="animate-spin">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
-          {/* Main Input Area */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2 text-base font-medium text-gray-700">
-              <FileText className="w-4 h-4 text-blue-600" />
-              Study Material
-            </Label>
-            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+          {/* Text Stats */}
+          {inputText && (
+            <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
               <span>{getWordCount()} words</span>
               <span>{inputText.length} characters</span>
               {isLongText && (
-                <span className="flex items-center gap-1 text-orange-600">
+                <span className="flex items-center gap-1 text-orange-400">
                   <Scissors className="w-3 h-3" />
                   {getChunkCount()} parts
                 </span>
               )}
             </div>
-            {isLongText && (
-              <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg mb-3">
-                <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5" />
-                <div className="text-xs text-orange-800 font-medium">
-                  Large text detected. Your text will be split for optimal processing.
-                </div>
-              </div>
-            )}
-            <Textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste your study material here..."
-              className="min-h-[200px] text-base border-2 border-gray-200 focus:border-blue-500 resize-none"
-            />
-          </div>
+          )}
 
-          {/* Generate Button */}
-          <Button 
-            onClick={generateContent}
-            disabled={isGenerating || !inputText.trim()}
-            className={`w-full h-14 text-lg font-semibold bg-gradient-to-r ${getOutputTypeColor()} hover:opacity-90 text-white shadow-lg transition-all duration-200 transform hover:scale-[1.02]`}
-          >
-            {isGenerating ? (
-              <div className="flex items-center gap-3">
+          {/* Long Text Warning */}
+          {isLongText && (
+            <div className="flex items-start gap-2 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg mt-3">
+              <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />
+              <div className="text-xs text-orange-300">
+                Large text detected. Your text will be split for optimal processing.
+              </div>
+            </div>
+          )}
+
+          {/* Processing Status */}
+          {isGenerating && processingStep && (
+            <div className="text-center mt-4 p-4 bg-gray-800 rounded-lg">
+              <div className="flex items-center justify-center gap-2 text-purple-400">
                 <div className="animate-spin">
-                  <Sparkles className="w-6 h-6" />
+                  <Sparkles className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col items-start">
-                  <span>{processingStep || `Generating ${outputType}...`}</span>
-                </div>
+                <span className="text-sm">{processingStep}</span>
               </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                {getOutputTypeIcon()}
-                <span>Generate {outputType === 'mcq' ? 'MCQs' : outputType === 'powerpoint' ? 'Presentation' : outputType.charAt(0).toUpperCase() + outputType.slice(1)}</span>
-                <Send className="w-5 h-5" />
-              </div>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

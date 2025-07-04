@@ -11,6 +11,8 @@ import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import AppSidebar from '@/components/AppSidebar';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Sparkles, Crown } from 'lucide-react';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -51,13 +53,13 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full bg-gray-900">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-foreground">Loading Neutron AI</h2>
-              <p className="text-sm text-muted-foreground">Preparing your workspace...</p>
+              <h2 className="text-lg font-semibold text-white">Loading Neutron AI</h2>
+              <p className="text-sm text-gray-400">Preparing your workspace...</p>
             </div>
           </div>
         </div>
@@ -124,22 +126,34 @@ const Index = () => {
       case 'presentations':
         return 'Presentations';
       case 'practice':
-        return 'Study Session';
+        return 'Study Sessions';
       default:
         return 'Neutron AI';
     }
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full bg-gray-900">
       <AppSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-      <SidebarInset className="flex-1">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarInset className="flex-1 bg-gray-900">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-gray-800 px-4 bg-gray-900">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">{getPageTitle()}</h1>
+            <h1 className="text-lg font-semibold text-white">{getPageTitle()}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-full"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Get Plus
+            </Button>
+            <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-white">SA</span>
+            </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-0">
+        <main className="flex-1 overflow-auto p-0 bg-gray-900">
           <div className="animate-fade-in h-full">
             {renderContent()}
           </div>
