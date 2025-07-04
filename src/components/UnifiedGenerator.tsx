@@ -22,7 +22,7 @@ import {
   Plus,
   Settings,
   Mic,
-  Waveform
+  AudioWaveform
 } from 'lucide-react';
 import { incrementGeminiUsage } from '@/lib/geminiUsage';
 
@@ -533,7 +533,7 @@ Text: ${inputText}`;
                 <Mic className="w-4 h-4" />
               </Button>
               <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
-                <Waveform className="w-4 h-4" />
+                <AudioWaveform className="w-4 h-4" />
               </Button>
               <Button
                 onClick={generateContent}
